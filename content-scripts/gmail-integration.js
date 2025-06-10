@@ -21,23 +21,42 @@ function initializeExtension() {
 // 作成ボックスに調整ボタンを追加
 function addAdjustButtonToComposeBoxes(composeBoxes) {
   composeBoxes.forEach(composeBox => {
-    // すでにボタンが追加されているか確認
-    const toolbar = composeBox.closest('div[role="dialog"]')?.querySelector('.aB.gQ.pE') || 
-                  composeBox.closest('td')?.querySelector('.aB.gQ.pE');
+    // ボタンが既に存在するかチェック
+    const existingButton = composeBox.parentNode.querySelector('.email-adjust-button-container');
+    if (existingButton) return;
     
-    if (toolbar && !toolbar.querySelector('.email-adjust-button')) {
-      const adjustButton = document.createElement('div');
-      adjustButton.className = 'email-adjust-button z0';
-      adjustButton.innerHTML = `
-        <div class="T-I J-J5-Ji aoO T-I-atl" role="button" tabindex="0" 
-             style="margin-right: 8px; background-color: #f1f3f4; color: #5f6368;">
-          <span class="Tn">メール調整</span>
-        </div>
-      `;
-      
-      adjustButton.addEventListener('click', () => handleAdjustButtonClick(composeBox));
-      toolbar.prepend(adjustButton);
-    }
+    // 本文入力欄の下に配置するコンテナを作成
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'email-adjust-button-container';
+    buttonContainer.style.padding = '10px 0';
+    buttonContainer.style.borderTop = '1px solid #e0e0e0';
+    buttonContainer.style.marginTop = '10px';
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.alignItems = 'center';
+    
+    // メール調整ボタンを作成
+    const adjustButton = document.createElement('div');
+    adjustButton.className = 'email-adjust-button';
+    adjustButton.innerHTML = `
+      <div class="T-I J-J5-Ji aoO T-I-atl" role="button" tabindex="0" 
+           style="margin-right: 8px; background-color: #4285f4; color: white; border-radius: 4px; padding: 8px 16px;">
+        <span class="Tn">メール調整</span>
+      </div>
+    `;
+    
+    // 関係性ラベルを作成
+    const relationshipLabel = document.createElement('div');
+    relationshipLabel.style.marginLeft = '8px';
+    relationshipLabel.style.fontSize = '14px';
+    relationshipLabel.style.color = '#5f6368';
+    relationshipLabel.textContent = 'クライアント（非常にフォーマルで丁寧）';
+    
+    // ボタンとラベルをコンテナに追加
+    buttonContainer.appendChild(adjustButton);
+    buttonContainer.appendChild(relationshipLabel);
+    
+    adjustButton.addEventListener('click', () => handleAdjustButtonClick(composeBox));
+    composeBox.parentNode.insertBefore(buttonContainer, composeBox.nextSibling);
   });
 }
 
