@@ -1,0 +1,160 @@
+body {
+  font-family: 'Google Sans', 'Segoe UI', Roboto, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa;
+  color: #202124;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h1 {
+  font-size: 24px;
+  margin-bottom: 24px;
+  color: #1a73e8;
+}
+
+h2 {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.relationship-list, .custom-relationship-list {
+  margin-bottom: 16px;
+}
+
+.relationship-item, .custom-relationship-item {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #dadce0;
+  align-items: center;
+}
+
+.relationship-item {
+  grid-template-columns: 2fr 1fr 1fr;
+}
+
+.custom-relationship-item {
+  grid-template-columns: 1fr 2fr 1fr;
+}
+
+.relationship-item.header, .custom-relationship-item.header {
+  font-weight: 500;
+  color: #5f6368;
+  border-bottom: 2px solid #dadce0;
+}
+
+.add-relationship, .add-custom-relationship {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+input, select {
+  padding: 8px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 14px;
+  flex: 1;
+}
+
+button {
+  padding: 8px 16px;
+  background-color: #f1f3f4;
+  color: #5f6368;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+button.primary {
+  background-color: #1a73e8;
+  color: white;
+}
+
+button:hover {
+  background-color: #e8eaed;
+}
+
+button.primary:hover {
+  background-color: #1765cc;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.edit-btn, .delete-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.settings-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #dadce0;
+}
+
+.settings-info {
+  margin-top: 16px;
+  color: #5f6368;
+  font-size: 14px;
+}
+
+/* スイッチスタイル */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 20px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}

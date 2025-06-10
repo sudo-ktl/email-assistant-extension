@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Email Assistant 設定</title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="../styles/options.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Email Assistant 設定</h1>
+    
+    <section class="section">
+      <h2>関係性設定</h2>
+      <div class="relationship-list">
+        <div class="relationship-item header">
+          <div class="email">メールアドレス</div>
+          <div class="relationship">関係性</div>
+          <div class="actions">操作</div>
+        </div>
+        <div id="relationshipItems"></div>
+      </div>
+      
+      <div class="add-relationship">
+        <input type="email" id="newEmail" placeholder="メールアドレス">
+        <select id="newRelationship">
+          <option value="">関係性を選択</option>
+          <option value="上司">上司</option>
+          <option value="同僚">同僚</option>
+          <option value="部下">部下</option>
+          <option value="クライアント">クライアント</option>
+          <option value="ビジネスパートナー">ビジネスパートナー</option>
+          <option value="社外関係者">社外関係者（初対面）</option>
+        </select>
+        <button id="addRelationshipBtn">追加</button>
+      </div>
+    </section>
+    
+    <section class="section">
+      <h2>カスタム関係性</h2>
+      <div class="custom-relationship-list">
+        <div class="custom-relationship-item header">
+          <div class="name">名前</div>
+          <div class="description">説明</div>
+          <div class="actions">操作</div>
+        </div>
+        <div id="customRelationshipItems"></div>
+      </div>
+      
+      <div class="add-custom-relationship">
+        <input type="text" id="newCustomName" placeholder="関係性名">
+        <input type="text" id="newCustomDescription" placeholder="説明（例：フォーマルで敬語）">
+        <button id="addCustomRelationshipBtn">追加</button>
+      </div>
+    </section>
+    
+    <section class="section">
+      <h2>一般設定</h2>
+      <div class="settings-item">
+        <label>APIキー自動保存</label>
+        <label class="switch">
+          <input type="checkbox" id="autoSaveApi" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="settings-info">
+        <p>※ メール調整機能はGemini APIを使用しており、メール内容はGoogle AIに送信されます。</p>
+        <p>※ 個人情報や機密情報を含むメールの調整には注意してください。</p>
+      </div>
+    </section>
+    
+    <div class="actions">
+      <button id="saveBtn" class="primary">保存</button>
+      <button id="resetBtn">リセット</button>
+    </div>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

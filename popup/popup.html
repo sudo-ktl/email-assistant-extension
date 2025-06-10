@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Email Assistant</title>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 300px;
+      padding: 15px;
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+    }
+    
+    h1 {
+      font-size: 18px;
+      color: #1a73e8;
+      margin-top: 0;
+    }
+    
+    .info {
+      font-size: 14px;
+      color: #5f6368;
+      margin-bottom: 15px;
+    }
+    
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    button {
+      padding: 8px 16px;
+      background-color: #f1f3f4;
+      color: #5f6368;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      text-align: left;
+    }
+    
+    button:hover {
+      background-color: #e8eaed;
+    }
+    
+    button.primary {
+      background-color: #1a73e8;
+      color: white;
+    }
+    
+    button.primary:hover {
+      background-color: #1765cc;
+    }
+  </style>
+</head>
+<body>
+  <h1>Email Assistant</h1>
+  
+  <div class="info">
+    Gmail上でメールを作成中に「メール調整」ボタンを使用して、相手との関係性に合わせたメール内容に調整できます。
+  </div>
+  
+  <div class="button-container">
+    <button id="openOptionsBtn" class="primary">関係性設定を管理</button>
+    <button id="helpBtn">ヘルプ</button>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
