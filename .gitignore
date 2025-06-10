@@ -27,3 +27,4 @@ secrets.js
 dist/
 build/
 *.zip
+config.js

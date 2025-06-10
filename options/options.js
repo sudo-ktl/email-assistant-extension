@@ -1,242 +1,262 @@
-// DOM要素
-const relationshipItemsContainer = document.getElementById('relationshipItems');
-const customRelationshipItemsContainer = document.getElementById('customRelationshipItems');
-const newEmailInput = document.getElementById('newEmail');
-const newRelationshipSelect = document.getElementById('newRelationship');
-const addRelationshipBtn = document.getElementById('addRelationshipBtn');
-const newCustomNameInput = document.getElementById('newCustomName');
+// DOM要素の参照を取得
+const relationshipContainer = document.getElementById('relationshipContainer');
+const newEmailAddressInput = document.getElementById('newEmailAddress');
+const relationshipTypeSelect = document.getElementById('relationshipType');
 const newCustomDescriptionInput = document.getElementById('newCustomDescription');
-const addCustomRelationshipBtn = document.getElementById('addCustomRelationshipBtn');
-const saveBtn = document.getElementById('saveBtn');
-const resetBtn = document.getElementById('resetBtn');
+const customDescriptionContainer = document.getElementById('customDescriptionContainer');
+const addRelationshipBtn = document.getElementById('addRelationshipBtn');
+const defaultRelationshipSelect = document.getElementById('defaultRelationship');
 const autoSaveApiCheckbox = document.getElementById('autoSaveApi');
+const geminiApiKeyInput = document.getElementById('geminiApiKey');
+const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
 
-// 関係性マッピングとカスタム関係性
-let relationshipMappings = [];
-let customRelationships = [];
-
-// 初期化
+// ページ読み込み時の初期化
 document.addEventListener('DOMContentLoaded', () => {
-  loadSettings();
+  // 保存されている関係性データを読み込む
+  loadRelationships();
   
-  // イベントリスナー
-  addRelationshipBtn.addEventListener('click', addRelationshipMapping);
-  addCustomRelationshipBtn.addEventListener('click', addCustomRelationship);
-  saveBtn.addEventListener('click', saveSettings);
-  resetBtn.addEventListener('click', resetSettings);
+  // デフォルト設定を読み込む
+  loadDefaultSettings();
+  
+  // APIキーを読み込む
+  loadApiKey();
+  
+  // カスタム関係性タイプの表示切り替え
+  relationshipTypeSelect.addEventListener('change', () => {
+    if (relationshipTypeSelect.value === 'custom') {
+      customDescriptionContainer.style.display = 'block';
+    } else {
+      customDescriptionContainer.style.display = 'none';
+    }
+  });
+  
+  // 関係性追加ボタンのイベントリスナー
+  addRelationshipBtn.addEventListener('click', addRelationship);
+  
+  // デフォルト設定の保存
+  defaultRelationshipSelect.addEventListener('change', saveDefaultSettings);
+  autoSaveApiCheckbox.addEventListener('change', saveDefaultSettings);
+  
+  // APIキー保存ボタンのイベントリスナー
+  saveApiKeyBtn.addEventListener('click', saveApiKey);
 });
 
-// 設定の読み込み
-function loadSettings() {
-  chrome.storage.sync.get(['relationshipMappings', 'customRelationships', 'autoSaveApi'], (result) => {
-    relationshipMappings = result.relationshipMappings || [];
-    customRelationships = result.customRelationships || getDefaultCustomRelationships();
+// 関係性データを読み込む
+function loadRelationships() {
+  chrome.storage.sync.get('relationships', (data) => {
+    const relationships = data.relationships || [];
+    relationshipContainer.innerHTML = '';
     
-    // 自動保存設定
-    const autoSaveApi = result.autoSaveApi !== undefined ? result.autoSaveApi : true;
-    autoSaveApiCheckbox.checked = autoSaveApi;
+    if (relationships.length === 0) {
+      relationshipContainer.innerHTML = '<p class="empty-message">登録されている関係性はありません。</p>';
+      return;
+    }
     
-    // 関係性マッピングの表示
-    renderRelationshipMappings();
-    
-    // カスタム関係性の表示
-    renderCustomRelationships();
-    
-    // セレクトボックスの更新
-    updateRelationshipSelect();
+    relationships.forEach((relationship, index) => {
+      const relationshipItem = document.createElement('div');
+      relationshipItem.className = 'relationship-item';
+      
+      relationshipItem.innerHTML = `
+        <div class="relationship-info">
+          <span class="email">${relationship.email}</span>
+          <span class="type">${relationship.type === 'custom' ? relationship.customDescription : relationship.type}</span>
+        </div>
+        <div class="relationship-actions">
+          <button class="delete-btn" data-index="${index}">削除</button>
+        </div>
+      `;
+      
+      relationshipContainer.appendChild(relationshipItem);
+      
+      // 削除ボタンにイベントリスナーを追加
+      relationshipItem.querySelector('.delete-btn').addEventListener('click', (e) => {
+        const index = parseInt(e.target.getAttribute('data-index'));
+        deleteRelationship(index);
+      });
+    });
   });
 }
 
-// デフォルトのカスタム関係性を取得
-function getDefaultCustomRelationships() {
-  return [
-    { name: '上司', description: 'フォーマルで敬語' },
-    { name: '同僚', description: '標準的なビジネス文体' },
-    { name: '部下', description: '指導的でありながら丁寧' },
-    { name: 'クライアント', description: '非常にフォーマルで丁寧' },
-    { name: 'ビジネスパートナー', description: '協力的でプロフェッショナル' },
-    { name: '社外関係者', description: 'フォーマルで慎重' }
-  ];
-}
-
-// 関係性マッピングの表示
-function renderRelationshipMappings() {
-  relationshipItemsContainer.innerHTML = '';
+// 新しい関係性を追加する
+function addRelationship() {
+  const email = newEmailAddressInput.value.trim();
+  const type = relationshipTypeSelect.value;
+  let customDescription = '';
   
-  relationshipMappings.forEach((mapping, index) => {
-    const item = document.createElement('div');
-    item.className = 'relationship-item';
-    item.innerHTML = `
-      <div class="email">${mapping.email}</div>
-      <div class="relationship">${mapping.relationship}</div>
-      <div class="actions">
-        <button class="edit-btn" data-index="${index}">編集</button>
-        <button class="delete-btn" data-index="${index}">削除</button>
-      </div>
-    `;
-    
-    relationshipItemsContainer.appendChild(item);
-  });
-  
-  // イベントリスナーの追加
-  document.querySelectorAll('.relationship-item .edit-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => editRelationshipMapping(parseInt(e.target.dataset.index)));
-  });
-  
-  document.querySelectorAll('.relationship-item .delete-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => deleteRelationshipMapping(parseInt(e.target.dataset.index)));
-  });
-}
-
-// カスタム関係性の表示
-function renderCustomRelationships() {
-  customRelationshipItemsContainer.innerHTML = '';
-  
-  customRelationships.forEach((rel, index) => {
-    const item = document.createElement('div');
-    item.className = 'custom-relationship-item';
-    item.innerHTML = `
-      <div class="name">${rel.name}</div>
-      <div class="description">${rel.description}</div>
-      <div class="actions">
-        <button class="edit-btn" data-index="${index}">編集</button>
-        <button class="delete-btn" data-index="${index}">削除</button>
-      </div>
-    `;
-    
-    customRelationshipItemsContainer.appendChild(item);
-  });
-  
-  // イベントリスナーの追加
-  document.querySelectorAll('.custom-relationship-item .edit-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => editCustomRelationship(parseInt(e.target.dataset.index)));
-  });
-  
-  document.querySelectorAll('.custom-relationship-item .delete-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => deleteCustomRelationship(parseInt(e.target.dataset.index)));
-  });
-}
-
-// 関係性セレクトボックスの更新
-function updateRelationshipSelect() {
-  newRelationshipSelect.innerHTML = '<option value="">関係性を選択</option>';
-  
-  customRelationships.forEach(rel => {
-    const option = document.createElement('option');
-    option.value = rel.name;
-    option.textContent = rel.name;
-    newRelationshipSelect.appendChild(option);
-  });
-}
-
-// 関係性マッピングの追加
-function addRelationshipMapping() {
-  const email = newEmailInput.value.trim();
-  const relationship = newRelationshipSelect.value;
-  
-  if (!email || !relationship) {
-    alert('メールアドレスと関係性を入力してください');
+  if (!email) {
+    alert('メールアドレスを入力してください。');
     return;
   }
   
-  // 既存のマッピングの確認
-  const existingIndex = relationshipMappings.findIndex(m => m.email === email);
-  if (existingIndex >= 0) {
-    relationshipMappings[existingIndex].relationship = relationship;
-  } else {
-    relationshipMappings.push({ email, relationship });
+  if (type === 'custom') {
+    customDescription = newCustomDescriptionInput.value.trim();
+    if (!customDescription) {
+      alert('カスタム関係性の説明を入力してください。');
+      return;
+    }
   }
   
-  renderRelationshipMappings();
-  newEmailInput.value = '';
-  newRelationshipSelect.value = '';
+  chrome.storage.sync.get('relationships', (data) => {
+    const relationships = data.relationships || [];
+    
+    // 重複チェック
+    const isDuplicate = relationships.some(r => r.email === email);
+    if (isDuplicate) {
+      alert('このメールアドレスは既に登録されています。');
+      return;
+    }
+    
+    // 新しい関係性を追加
+    relationships.push({
+      email,
+      type,
+      customDescription
+    });
+    
+    // 保存して表示を更新
+    chrome.storage.sync.set({ relationships }, () => {
+      loadRelationships();
+      
+      // 入力フィールドをクリア
+      newEmailAddressInput.value = '';
+      relationshipTypeSelect.value = 'クライアント';
+      newCustomDescriptionInput.value = '';
+      customDescriptionContainer.style.display = 'none';
+    });
+  });
 }
 
-// カスタム関係性の追加
-function addCustomRelationship() {
-  const name = newCustomNameInput.value.trim();
-  const description = newCustomDescriptionInput.value.trim();
+// 関係性を削除する
+function deleteRelationship(index) {
+  chrome.storage.sync.get('relationships', (data) => {
+    const relationships = data.relationships || [];
+    
+    if (index >= 0 && index < relationships.length) {
+      relationships.splice(index, 1);
+      
+      chrome.storage.sync.set({ relationships }, () => {
+        loadRelationships();
+      });
+    }
+  });
+}
+
+// デフォルト設定を読み込む
+function loadDefaultSettings() {
+  chrome.storage.sync.get(['defaultRelationship', 'autoSaveApi'], (data) => {
+    if (data.defaultRelationship) {
+      defaultRelationshipSelect.value = data.defaultRelationship;
+    }
+    
+    if (data.autoSaveApi !== undefined) {
+      autoSaveApiCheckbox.checked = data.autoSaveApi;
+    }
+  });
+}
+
+// デフォルト設定を保存する
+function saveDefaultSettings() {
+  const defaultRelationship = defaultRelationshipSelect.value;
+  const autoSaveApi = autoSaveApiCheckbox.checked;
   
-  if (!name || !description) {
-    alert('関係性名と説明を入力してください');
-    return;
-  }
-  
-  // 既存の関係性の確認
-  const existingIndex = customRelationships.findIndex(r => r.name === name);
-  if (existingIndex >= 0) {
-    customRelationships[existingIndex].description = description;
-  } else {
-    customRelationships.push({ name, description });
-  }
-  
-  renderCustomRelationships();
-  updateRelationshipSelect();
-  newCustomNameInput.value = '';
-  newCustomDescriptionInput.value = '';
-}
-
-// 関係性マッピングの編集
-function editRelationshipMapping(index) {
-  const mapping = relationshipMappings[index];
-  newEmailInput.value = mapping.email;
-  newRelationshipSelect.value = mapping.relationship;
-  deleteRelationshipMapping(index);
-}
-
-// 関係性マッピングの削除
-function deleteRelationshipMapping(index) {
-  relationshipMappings.splice(index, 1);
-  renderRelationshipMappings();
-}
-
-// カスタム関係性の編集
-function editCustomRelationship(index) {
-  const rel = customRelationships[index];
-  newCustomNameInput.value = rel.name;
-  newCustomDescriptionInput.value = rel.description;
-  deleteCustomRelationship(index);
-}
-
-// カスタム関係性の削除
-function deleteCustomRelationship(index) {
-  customRelationships.splice(index, 1);
-  renderCustomRelationships();
-  updateRelationshipSelect();
-}
-
-// 設定の保存
-function saveSettings() {
   chrome.storage.sync.set({
-    relationshipMappings,
-    customRelationships,
-    autoSaveApi: autoSaveApiCheckbox.checked
-  }, () => {
-    showSavedMessage();
+    defaultRelationship,
+    autoSaveApi
   });
 }
 
-// 保存メッセージの表示
-function showSavedMessage() {
-  const message = document.createElement('div');
-  message.className = 'saved-message';
-  message.textContent = '設定を保存しました';
-  document.body.appendChild(message);
-  
-  setTimeout(() => {
-    message.remove();
-  }, 2000);
+// APIキーを読み込む
+function loadApiKey() {
+  chrome.runtime.sendMessage({ action: "getApiKey" }, (response) => {
+    if (response && response.apiKey) {
+      geminiApiKeyInput.value = response.apiKey;
+    }
+  });
 }
 
-// 設定のリセット
-function resetSettings() {
-  if (confirm('すべての設定をリセットしますか？')) {
-    relationshipMappings = [];
-    customRelationships = getDefaultCustomRelationships();
-    autoSaveApiCheckbox.checked = true;
-    
-    renderRelationshipMappings();
-    renderCustomRelationships();
-    updateRelationshipSelect();
+// APIキーを保存する
+function saveApiKey() {
+  const apiKey = geminiApiKeyInput.value.trim();
+  
+  if (!apiKey) {
+    alert('APIキーを入力してください。');
+    return;
   }
+  
+  chrome.runtime.sendMessage({ action: "setApiKey", apiKey }, (response) => {
+    if (response && response.success) {
+      alert('APIキーを保存しました。');
+    } else {
+      alert('APIキーの保存に失敗しました。');
+    }
+  });
+}
+// APIキーを保存する関数を修正
+function saveApiKey() {
+  const apiKey = geminiApiKeyInput.value.trim();
+  
+  if (!apiKey) {
+    alert('APIキーを入力してください。');
+    return;
+  }
+  
+  console.log("APIキーを保存します...");
+  
+  // 直接Storageに保存してから、バックグラウンドにも通知
+  chrome.storage.sync.set({ geminiApiKey: apiKey }, () => {
+    const error = chrome.runtime.lastError;
+    if (error) {
+      console.error("APIキーの保存中にエラーが発生しました:", error);
+      alert('APIキーの保存に失敗しました: ' + error.message);
+      return;
+    }
+    
+    console.log("Storageへの保存が成功しました。バックグラウンドに通知します...");
+    
+    // バックグラウンドスクリプトにも通知
+    chrome.runtime.sendMessage({ action: "setApiKey", apiKey }, (response) => {
+      if (response && response.success) {
+        console.log("バックグラウンドへの通知も成功しました");
+        alert('APIキーを保存しました。');
+        
+        // 確認のためにもう一度読み込む
+        setTimeout(() => {
+          chrome.runtime.sendMessage({ action: "getApiKey" }, (getResponse) => {
+            console.log("保存後の確認:", getResponse);
+            if (!getResponse || !getResponse.apiKey) {
+              alert('警告: APIキーは保存されましたが、バックグラウンドで読み込めていない可能性があります。拡張機能を再読み込みしてください。');
+            }
+          });
+        }, 500);
+      } else {
+        console.error("バックグラウンドへの通知に失敗:", response);
+        alert('APIキーをStorageに保存しましたが、バックグラウンドへの通知に失敗しました。拡張機能を再読み込みしてください。');
+      }
+    });
+  });
+}
+
+// APIキーを読み込む関数を修正
+function loadApiKey() {
+  console.log("APIキーを読み込みます...");
+  
+  // まず直接Storageから読み込む
+  chrome.storage.sync.get('geminiApiKey', (data) => {
+    console.log("Storage APIからの読み込み結果:", data);
+    
+    if (data && data.geminiApiKey) {
+      geminiApiKeyInput.value = data.geminiApiKey;
+      console.log("Storageから直接APIキーを読み込みました");
+    }
+    
+    // バックグラウンドからも確認
+    chrome.runtime.sendMessage({ action: "getApiKey" }, (response) => {
+      console.log("バックグラウンドからの応答:", response);
+      
+      if (response && response.apiKey) {
+        geminiApiKeyInput.value = response.apiKey;
+        console.log("バックグラウンドからAPIキーを読み込みました");
+      }
+    });
+  });
 }
