@@ -94,6 +94,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
   
+  if (request.action === "getRelationship") {
+    logDebug("関係性取得リクエストを受信しました: " + request.email);
+    chrome.storage.sync.get(['relationships', 'defaultRelationship'], (data) => {
+      const relationships = data.relationships || [];
+      const defaultRelationship = data.defaultRelationship || 'クライアント';
+      
+      logDebug("保存されている関係性: " + JSON.stringify(relationships));
+      
+      // 登録されている関係性を検索
+      const relationship = relationships.find(r => r.email === request.email);
+      
+      if (relationship) {
+        // カスタム関係性の場合は説明文を、それ以外は関係性タイプを返す
+        const relationshipText = relationship.type === 'custom' 
+          ? relationship.customDescription 
+          : relationship.type;
+        logDebug("関係性が見つかりました: " + relationshipText);
+        sendResponse({ relationship: relationshipText });
+      } else {
+        // 登録されていない場合はデフォルト関係性を返す
+        logDebug("関係性が見つからないため、デフォルトを使用: " + defaultRelationship);
+        sendResponse({ relationship: defaultRelationship });
+      }
+    });
+    return true;
+  }
+  
   // その他のメッセージに対するレスポンス
   logDebug("未知のメッセージアクション: " + request.action);
   return false;

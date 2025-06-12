@@ -46,18 +46,273 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     
     // 関係性ラベルを作成
     const relationshipLabel = document.createElement('div');
+    relationshipLabel.className = 'relationship-label';
     relationshipLabel.style.marginLeft = '8px';
     relationshipLabel.style.fontSize = '14px';
     relationshipLabel.style.color = '#5f6368';
-    relationshipLabel.textContent = 'クライアント（非常にフォーマルで丁寧）';
+    relationshipLabel.textContent = '関係性を確認中...';
     
     // ボタンとラベルをコンテナに追加
     buttonContainer.appendChild(adjustButton);
     buttonContainer.appendChild(relationshipLabel);
     
+    // 宛先フィールドから関係性を取得してラベルを更新
+    updateRelationshipLabel(composeBox, relationshipLabel);
+    
+    // 宛先フィールドの変更を監視
+    setupToFieldObserver(composeBox, relationshipLabel);
+    
+    // より頻繁に関係性ラベルを更新
+    setupFrequentUpdate(composeBox, relationshipLabel);
+    
+    // デバッグ用：定期的に宛先をチェック（必要に応じてコメントアウト）
+    // setupPeriodicCheck(composeBox, relationshipLabel);
+    
     adjustButton.addEventListener('click', () => handleAdjustButtonClick(composeBox));
     composeBox.parentNode.insertBefore(buttonContainer, composeBox.nextSibling);
   });
+}
+
+// 宛先フィールドの変更を監視
+function setupToFieldObserver(composeBox, relationshipLabel) {
+  const emailContainer = composeBox.closest('div[role="dialog"]') || composeBox.closest('form') || composeBox.closest('.M9');
+  
+  if (emailContainer) {
+    // MutationObserverで宛先チップの追加/削除を監視
+    const observer = new MutationObserver((mutations) => {
+      let shouldUpdate = false;
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList') {
+          // 宛先チップが追加または削除された場合
+          const hasRecipientChanges = Array.from(mutation.addedNodes).some(node => 
+            node.nodeType === 1 && (node.matches('.vR') || node.querySelector('.vR'))
+          ) || Array.from(mutation.removedNodes).some(node => 
+            node.nodeType === 1 && (node.matches('.vR') || node.querySelector('.vR'))
+          );
+          if (hasRecipientChanges) {
+            shouldUpdate = true;
+          }
+        }
+      });
+      
+      if (shouldUpdate) {
+        setTimeout(() => updateRelationshipLabel(composeBox, relationshipLabel), 100);
+      }
+    });
+    
+    observer.observe(emailContainer, { 
+      childList: true, 
+      subtree: true,
+      attributes: false 
+    });
+    
+    // input要素の変更も監視
+    const toInput = emailContainer.querySelector('input[aria-label*="To"], input[aria-label*="宛先"]');
+    if (toInput) {
+      toInput.addEventListener('input', () => {
+        setTimeout(() => updateRelationshipLabel(composeBox, relationshipLabel), 200);
+      });
+      toInput.addEventListener('change', () => {
+        setTimeout(() => updateRelationshipLabel(composeBox, relationshipLabel), 200);
+      });
+    }
+  }
+}
+
+// より頻繁に関係性ラベルを更新
+function setupFrequentUpdate(composeBox, relationshipLabel) {
+  // 最初の5回のみ、2秒間隔で関係性ラベルを更新
+  let updateCount = 0;
+  const maxUpdates = 5;
+  
+  const updateInterval = setInterval(() => {
+    updateCount++;
+    updateRelationshipLabel(composeBox, relationshipLabel);
+    
+    if (updateCount >= maxUpdates) {
+      clearInterval(updateInterval);
+    }
+  }, 2000);
+  
+  // フォーカスイベントでも更新
+  const emailContainer = composeBox.closest('div[role="dialog"]') || composeBox.closest('form') || composeBox.closest('.M9');
+  if (emailContainer) {
+    const toInput = emailContainer.querySelector('input[aria-label*="To"], input[aria-label*="宛先"]');
+    if (toInput) {
+      toInput.addEventListener('focus', () => {
+        setTimeout(() => updateRelationshipLabel(composeBox, relationshipLabel), 500);
+      });
+      
+      toInput.addEventListener('blur', () => {
+        setTimeout(() => updateRelationshipLabel(composeBox, relationshipLabel), 500);
+      });
+    }
+  }
+}
+
+// デバッグ用：定期的に宛先をチェック
+function setupPeriodicCheck(composeBox, relationshipLabel) {
+  console.log('[Email Assistant] 定期チェック開始');
+  let checkCount = 0;
+  
+  const interval = setInterval(() => {
+    checkCount++;
+    console.log(`[Email Assistant] 定期チェック ${checkCount}回目`);
+    
+    const emailContainer = composeBox.closest('div[role="dialog"]') || composeBox.closest('form') || composeBox.closest('.M9');
+    
+    // input要素の状態をチェック
+    const toInput = emailContainer?.querySelector('input[aria-label*="To"], input[aria-label*="宛先"]');
+    if (toInput) {
+      console.log(`[Email Assistant] input状態 - value: "${toInput.value}", textContent: "${toInput.textContent}"`);
+      console.log(`[Email Assistant] input属性:`, {
+        placeholder: toInput.placeholder,
+        'aria-description': toInput.getAttribute('aria-description'),
+        'aria-owns': toInput.getAttribute('aria-owns')
+      });
+    }
+    
+    // aria-owns で参照されるリストボックスをチェック
+    if (toInput && toInput.getAttribute('aria-owns')) {
+      const listboxId = toInput.getAttribute('aria-owns');
+      const listbox = document.getElementById(listboxId);
+      console.log(`[Email Assistant] listbox (${listboxId}):`, listbox);
+      if (listbox) {
+        console.log(`[Email Assistant] listbox内容:`, listbox.innerHTML);
+      }
+    }
+    
+    // 選択済み宛先の表示エリアをより広範囲で検索
+    const possibleChipAreas = emailContainer?.querySelectorAll('div[aria-label], div[title], span[title], [data-name]');
+    if (possibleChipAreas) {
+      console.log(`[Email Assistant] 可能性のあるチップエリア数: ${possibleChipAreas.length}`);
+      Array.from(possibleChipAreas).forEach((area, index) => {
+        if (area.textContent && area.textContent.includes('@')) {
+          console.log(`[Email Assistant] @を含むエリア ${index}:`, area.textContent, area);
+        }
+      });
+    }
+    
+    // 10回チェックしたら停止
+    if (checkCount >= 10) {
+      clearInterval(interval);
+      console.log('[Email Assistant] 定期チェック終了');
+    }
+  }, 2000); // 2秒間隔
+}
+
+// 関係性ラベルを更新
+async function updateRelationshipLabel(composeBox, relationshipLabel) {
+  try {
+    // 宛先メールアドレスを取得
+    const emailContainer = composeBox.closest('div[role="dialog"]') || composeBox.closest('form') || composeBox.closest('.M9');
+    let recipientEmail = '';
+    let toField = null; // toFieldを関数の最初で定義
+    
+    // console.log('[Email Assistant] emailContainer:', emailContainer);
+    
+    // DOM構造の詳細調査（デバッグ用 - 必要に応じてコメントアウト）
+    /*
+    if (emailContainer) {
+      console.log('[Email Assistant] DOM調査 - emailContainer HTML:', emailContainer.innerHTML.substring(0, 500));
+      
+      // Toフィールド周辺の構造を調査
+      const toArea = emailContainer.querySelector('[aria-label*="To"], [aria-label*="宛先"]');
+      if (toArea) {
+        console.log('[Email Assistant] To area found:', toArea);
+        console.log('[Email Assistant] To area parent:', toArea.parentElement);
+        console.log('[Email Assistant] To area siblings:', Array.from(toArea.parentElement.children));
+      }
+      
+      // 全ての可能な宛先関連要素を検索
+      const allElements = emailContainer.querySelectorAll('*');
+      const emailElements = Array.from(allElements).filter(el => {
+        const text = el.textContent || '';
+        const attrs = Array.from(el.attributes).map(attr => attr.name + '=' + attr.value).join(' ');
+        return text.includes('@') || attrs.includes('@') || attrs.includes('email');
+      });
+      console.log('[Email Assistant] 全ての@関連要素:', emailElements);
+    }
+    */
+    
+    // 1. まず選択済みの宛先チップから取得を試行（より具体的なセレクタを使用）
+    const chipSelectors = [
+      '[email]', // email属性を持つ要素
+      '.vR span[email]',
+      '.afX span[email]', 
+      '.vT span[email]',
+      '.yW span[email]',
+      '.vO .go span', // 宛先チップ内のspan
+      '.vN .vM', // 宛先名表示エリア
+      '[data-hovercard-id]' // Gmail の連絡先カード
+    ];
+    
+    let recipientChips = [];
+    for (const selector of chipSelectors) {
+      const chips = emailContainer?.querySelectorAll(selector);
+      if (chips && chips.length > 0) {
+        recipientChips = Array.from(chips);
+        // console.log('[Email Assistant] 見つかったchips with selector:', selector, chips);
+        break;
+      }
+    }
+    
+    // console.log('[Email Assistant] recipientChips:', recipientChips);
+    
+    if (recipientChips.length > 0) {
+      for (const chip of recipientChips) {
+        const email = chip.getAttribute('email') || 
+                     chip.getAttribute('data-hovercard-id') || 
+                     chip.textContent || 
+                     chip.title;
+        // console.log('[Email Assistant] chip email:', email);
+        if (email && email.includes('@')) {
+          recipientEmail = email;
+          break;
+        }
+      }
+    }
+    
+    // 2. チップが見つからない場合、input要素から取得
+    if (!recipientEmail) {
+      const toSelectors = [
+        'input[aria-label*="To"]',
+        'input[aria-label*="宛先"]',
+        'input[name="to"]',
+        'div[role="textbox"][aria-label*="宛先"]', 
+        'div[role="textbox"][aria-label*="To"]'
+      ];
+      
+      for (const selector of toSelectors) {
+        toField = emailContainer?.querySelector(selector);
+        if (toField) {
+          // console.log('[Email Assistant] 見つかったtoField:', toField, 'value:', toField.value);
+          recipientEmail = toField.value || toField.textContent || toField.getAttribute('data-initial-value') || '';
+          break;
+        }
+      }
+    }
+    
+    // 3. メールアドレス部分のみを抽出
+    if (recipientEmail) {
+      const emailMatch = recipientEmail.match(/[\w\.-]+@[\w\.-]+\.\w+/);
+      if (emailMatch) {
+        recipientEmail = emailMatch[0];
+      }
+    }
+    
+    if (recipientEmail && recipientEmail.trim() !== '') {
+      const relationship = await getRelationship(recipientEmail);
+      relationshipLabel.textContent = `関係性: ${relationship}`;
+    } else {
+      // 宛先が入力されていない場合でも、デフォルト関係性を表示
+      const defaultRelationship = await getDefaultRelationship();
+      relationshipLabel.textContent = `関係性: ${defaultRelationship}（デフォルト）`;
+    }
+  } catch (error) {
+    console.error('関係性ラベル更新エラー:', error);
+    relationshipLabel.textContent = 'デフォルト: クライアント';
+  }
 }
 
 // 調整ボタンのクリックハンドラー
@@ -65,13 +320,77 @@ function handleAdjustButtonClick(composeBox) {
   // メール内容を取得
   const emailContent = composeBox.innerHTML;
   
-  // 宛先から関係性を取得（ここでは仮のデモ実装）
-  const emailContainer = composeBox.closest('div[role="dialog"]') || composeBox.closest('form');
-  const toField = emailContainer.querySelector('input[name="to"], div[role="textbox"][aria-label*="宛先"]');
-  const recipientEmail = toField ? toField.value || toField.textContent : '';
+  // 宛先から関係性を取得
+  const emailContainer = composeBox.closest('div[role="dialog"]') || composeBox.closest('form') || composeBox.closest('.M9');
+  let recipientEmail = '';
   
-  // 関係性を取得（実際にはChromeストレージから取得）
+  // 1. まず選択済みの宛先チップから取得を試行（より具体的なセレクタを使用）
+  const chipSelectors = [
+    '[email]', // email属性を持つ要素
+    '.vR span[email]',
+    '.afX span[email]', 
+    '.vT span[email]',
+    '.yW span[email]',
+    '.vO .go span', // 宛先チップ内のspan
+    '.vN .vM', // 宛先名表示エリア
+    '[data-hovercard-id]' // Gmail の連絡先カード
+  ];
+  
+  let recipientChips = [];
+  for (const selector of chipSelectors) {
+    const chips = emailContainer?.querySelectorAll(selector);
+    if (chips && chips.length > 0) {
+      recipientChips = Array.from(chips);
+      break;
+    }
+  }
+  
+  if (recipientChips.length > 0) {
+    for (const chip of recipientChips) {
+      const email = chip.getAttribute('email') || 
+                   chip.getAttribute('data-hovercard-id') || 
+                   chip.textContent || 
+                   chip.title;
+      if (email && email.includes('@')) {
+        recipientEmail = email;
+        break;
+      }
+    }
+  }
+  
+  // 2. チップが見つからない場合、input要素から取得
+  if (!recipientEmail) {
+    const toSelectors = [
+      'input[aria-label*="To"]',
+      'input[aria-label*="宛先"]',
+      'input[name="to"]',
+      'div[role="textbox"][aria-label*="宛先"]', 
+      'div[role="textbox"][aria-label*="To"]'
+    ];
+    
+    let toField = null;
+    for (const selector of toSelectors) {
+      toField = emailContainer?.querySelector(selector);
+      if (toField) {
+        recipientEmail = toField.value || toField.textContent || toField.getAttribute('data-initial-value') || '';
+        break;
+      }
+    }
+  }
+  
+  // 3. メールアドレス部分のみを抽出
+  if (recipientEmail) {
+    const emailMatch = recipientEmail.match(/[\w\.-]+@[\w\.-]+\.\w+/);
+    if (emailMatch) {
+      recipientEmail = emailMatch[0];
+    }
+  }
+  
+  // console.log('[Email Assistant] 調整ボタンクリック - 宛先:', recipientEmail);
+  
+  // 関係性を取得
   getRelationship(recipientEmail).then(relationship => {
+    
     // 関係性に基づいてメールを調整
     chrome.runtime.sendMessage(
       { action: "adjustEmail", emailContent: stripHtml(emailContent), relationship: relationship },
@@ -86,10 +405,36 @@ function handleAdjustButtonClick(composeBox) {
   });
 }
 
-// 関係性を取得（Chromeストレージから）
+// 関係性を取得（Background scriptを通じて）
 async function getRelationship(email) {
-  // デモ用の仮実装。実際にはChromeストレージから取得
-  return "クライアント"; // デフォルトの関係性
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { action: "getRelationship", email: email },
+      (response) => {
+        if (response && response.relationship) {
+          resolve(response.relationship);
+        } else {
+          resolve('クライアント'); // フォールバック
+        }
+      }
+    );
+  });
+}
+
+// デフォルト関係性を取得
+async function getDefaultRelationship() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { action: "getRelationship", email: "" }, // 空のemailでデフォルト関係性を取得
+      (response) => {
+        if (response && response.relationship) {
+          resolve(response.relationship);
+        } else {
+          resolve('クライアント'); // フォールバック
+        }
+      }
+    );
+  });
 }
 
 // HTMLタグを除去
