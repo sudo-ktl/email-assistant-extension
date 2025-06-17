@@ -44,6 +44,16 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
       </div>
     `;
     
+    // 英訳ボタンを作成
+    const translateButton = document.createElement('div');
+    translateButton.className = 'email-translate-button';
+    translateButton.innerHTML = `
+      <div class="T-I J-J5-Ji aoO T-I-atl" role="button" tabindex="0" 
+           style="margin-right: 8px; background-color: #34a853; color: white; border-radius: 4px; padding: 8px 16px;">
+        <span class="Tn">英訳</span>
+      </div>
+    `;
+    
     // 関係性ラベルを作成
     const relationshipLabel = document.createElement('div');
     relationshipLabel.className = 'relationship-label';
@@ -54,6 +64,7 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     
     // ボタンとラベルをコンテナに追加
     buttonContainer.appendChild(adjustButton);
+    buttonContainer.appendChild(translateButton);
     buttonContainer.appendChild(relationshipLabel);
     
     // 宛先フィールドから関係性を取得してラベルを更新
@@ -69,6 +80,7 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     // setupPeriodicCheck(composeBox, relationshipLabel);
     
     adjustButton.addEventListener('click', () => handleAdjustButtonClick(composeBox));
+    translateButton.addEventListener('click', () => handleTranslateButtonClick(composeBox));
     composeBox.parentNode.insertBefore(buttonContainer, composeBox.nextSibling);
   });
 }
@@ -498,6 +510,125 @@ function removeExistingResultPanel(composeBox) {
   if (existingPanel) {
     existingPanel.remove();
   }
+}
+
+// 英訳ボタンのクリックハンドラー
+function handleTranslateButtonClick(composeBox) {
+  // メール内容を取得
+  const emailContent = composeBox.innerHTML;
+  
+  // 宛先から関係性を取得
+  const emailContainer = composeBox.closest('div[role="dialog"]') || composeBox.closest('form') || composeBox.closest('.M9');
+  let recipientEmail = '';
+  
+  // 1. まず選択済みの宛先チップから取得を試行（より具体的なセレクタを使用）
+  const chipSelectors = [
+    '[email]', // email属性を持つ要素
+    '.vR span[email]',
+    '.afX span[email]', 
+    '.vT span[email]',
+    '.yW span[email]',
+    '.vO .go span', // 宛先チップ内のspan
+    '.vN .vM', // 宛先名表示エリア
+    '[data-hovercard-id]' // Gmail の連絡先カード
+  ];
+  
+  let recipientChips = [];
+  for (const selector of chipSelectors) {
+    const chips = emailContainer?.querySelectorAll(selector);
+    if (chips && chips.length > 0) {
+      recipientChips = Array.from(chips);
+      break;
+    }
+  }
+  
+  if (recipientChips.length > 0) {
+    for (const chip of recipientChips) {
+      const email = chip.getAttribute('email') || 
+                   chip.getAttribute('data-hovercard-id') || 
+                   chip.textContent || 
+                   chip.title;
+      if (email && email.includes('@')) {
+        recipientEmail = email;
+        break;
+      }
+    }
+  }
+  
+  // 2. チップが見つからない場合、input要素から取得
+  if (!recipientEmail) {
+    const toSelectors = [
+      'input[aria-label*="To"]',
+      'input[aria-label*="宛先"]',
+      'input[name="to"]',
+      'div[role="textbox"][aria-label*="宛先"]', 
+      'div[role="textbox"][aria-label*="To"]'
+    ];
+    
+    let toField = null;
+    for (const selector of toSelectors) {
+      toField = emailContainer?.querySelector(selector);
+      if (toField) {
+        recipientEmail = toField.value || toField.textContent || toField.getAttribute('data-initial-value') || '';
+        break;
+      }
+    }
+  }
+  
+  // 3. メールアドレス部分のみを抽出
+  if (recipientEmail) {
+    const emailMatch = recipientEmail.match(/[\w\.-]+@[\w\.-]+\.\w+/);
+    if (emailMatch) {
+      recipientEmail = emailMatch[0];
+    }
+  }
+  
+  // 関係性を取得
+  getRelationship(recipientEmail).then(relationship => {
+    
+    // 関係性に基づいてメールを英訳
+    chrome.runtime.sendMessage(
+      { action: "translateEmail", emailContent: stripHtml(emailContent), relationship: relationship },
+      response => {
+        if (response.success) {
+          showTranslationResult(composeBox, response.translatedEmail);
+        } else {
+          showError(composeBox, response.error);
+        }
+      }
+    );
+  });
+}
+
+// 英訳結果を表示
+function showTranslationResult(composeBox, translatedEmail) {
+  // すでに表示されている結果パネルを削除
+  removeExistingResultPanel(composeBox);
+  
+  // 結果パネルを作成
+  const resultPanel = document.createElement('div');
+  resultPanel.className = 'email-adjustment-result';
+  resultPanel.innerHTML = `
+    <div class="adjustment-header">英訳結果</div>
+    <div class="adjustment-content">${translatedEmail}</div>
+    <div class="adjustment-actions">
+      <button class="apply-btn">適用</button>
+      <button class="cancel-btn">キャンセル</button>
+    </div>
+  `;
+  
+  // ボタンのイベントリスナーを追加
+  resultPanel.querySelector('.apply-btn').addEventListener('click', () => {
+    composeBox.innerHTML = translatedEmail;
+    resultPanel.remove();
+  });
+  
+  resultPanel.querySelector('.cancel-btn').addEventListener('click', () => {
+    resultPanel.remove();
+  });
+  
+  // パネルを挿入
+  composeBox.parentNode.insertBefore(resultPanel, composeBox.nextSibling);
 }
 
 // ページ読み込み完了時に拡張機能を初期化

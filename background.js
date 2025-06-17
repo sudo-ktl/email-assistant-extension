@@ -69,6 +69,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // 非同期レスポンスを示す
   }
   
+  if (request.action === "translateEmail") {
+    if (!apiKey) {
+      logDebug("APIキーが設定されていません");
+      sendResponse({ 
+        success: false, 
+        error: "APIキーが設定されていません。オプション画面で設定してください。" 
+      });
+      return true;
+    }
+    
+    logDebug("メール英訳を開始します");
+    translateEmail(request.emailContent, request.relationship)
+      .then(response => {
+        logDebug("メール英訳が成功しました");
+        sendResponse({ success: true, translatedEmail: response });
+      })
+      .catch(error => {
+        logDebug("メール英訳中にエラーが発生しました: " + error.message);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true; // 非同期レスポンスを示す
+  }
+  
   if (request.action === "setApiKey") {
     logDebug("APIキー設定リクエストを受信しました");
     setApiKey(request.apiKey)
@@ -167,6 +190,47 @@ async function adjustEmail(emailContent, relationship) {
   }
 }
 
+// Gemini APIを使ってメールを英訳
+async function translateEmail(emailContent, relationship) {
+  logDebug("Gemini APIを呼び出します（英訳）");
+  try {
+    const prompt = createTranslationPrompt(emailContent, relationship);
+    logDebug("英訳プロンプトを作成しました");
+    
+    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1000
+        }
+      })
+    });
+
+    logDebug("APIレスポンスを受信しました（英訳）: " + response.status);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error?.message || "API呼び出し中にエラーが発生しました");
+    }
+
+    return data.candidates[0].content.parts[0].text;
+  } catch (error) {
+    logDebug("英訳API呼び出しエラー: " + error.message);
+    throw error;
+  }
+}
+
 // 関係性に基づいたプロンプトを作成
 function createPrompt(emailContent, relationship) {
   return `
@@ -175,6 +239,46 @@ function createPrompt(emailContent, relationship) {
 修正後のメール本文のみを返してください。
 
 メール本文:
+${emailContent}
+  `;
+}
+
+// 関係性に基づいた英訳プロンプトを作成
+function createTranslationPrompt(emailContent, relationship) {
+  let styleInstruction = "";
+  
+  switch (relationship) {
+    case "上司":
+      styleInstruction = "very formal and respectful English suitable for addressing a superior";
+      break;
+    case "同僚":
+      styleInstruction = "professional but friendly English suitable for colleagues";
+      break;
+    case "部下":
+      styleInstruction = "professional English with a supportive tone suitable for subordinates";
+      break;
+    case "クライアント":
+      styleInstruction = "highly formal and polite English suitable for clients";
+      break;
+    case "ビジネスパートナー":
+      styleInstruction = "professional and collaborative English suitable for business partners";
+      break;
+    case "社外関係者（初対面）":
+      styleInstruction = "very formal and cautious English suitable for first contact with external parties";
+      break;
+    default:
+      // カスタム関係性の場合
+      styleInstruction = `professional English appropriate for the relationship: ${relationship}`;
+      break;
+  }
+  
+  return `
+以下の日本語メール本文を、「${relationship}」との関係性に適した英語に翻訳してください。
+${styleInstruction}を使用してください。
+元のメッセージの意図や内容は保持しつつ、関係性に合わせた適切な英語表現に翻訳してください。
+翻訳後の英語メール本文のみを返してください。
+
+日本語メール本文:
 ${emailContent}
   `;
 }
