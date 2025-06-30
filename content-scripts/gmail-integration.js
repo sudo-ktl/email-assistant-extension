@@ -749,9 +749,26 @@ function enableRelationshipEditing(relationshipLabel, composeBox) {
     }
   };
   
-  // Enterキーで保存
+  // IME入力状態を追跡
+  let isComposing = false;
+  
+  // IME入力開始
+  input.addEventListener('compositionstart', () => {
+    isComposing = true;
+  });
+  
+  // IME入力終了
+  input.addEventListener('compositionend', () => {
+    isComposing = false;
+  });
+  
+  // Enterキーで保存（IME入力中は無視）
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
+      // IME入力中（日本語変換中）の場合は何もしない
+      if (isComposing) {
+        return;
+      }
       e.preventDefault();
       finishEditing(true);
     } else if (e.key === 'Escape') {
