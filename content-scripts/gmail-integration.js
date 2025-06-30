@@ -60,7 +60,30 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     relationshipLabel.style.marginLeft = '8px';
     relationshipLabel.style.fontSize = '14px';
     relationshipLabel.style.color = '#5f6368';
+    relationshipLabel.style.cursor = 'pointer';
+    relationshipLabel.style.padding = '4px 8px';
+    relationshipLabel.style.borderRadius = '4px';
+    relationshipLabel.style.border = '1px solid transparent';
     relationshipLabel.textContent = '関係性を確認中...';
+    
+    // ホバー効果を追加
+    relationshipLabel.addEventListener('mouseenter', () => {
+      relationshipLabel.style.backgroundColor = '#f8f9fa';
+      relationshipLabel.style.border = '1px solid #dadce0';
+    });
+    
+    relationshipLabel.addEventListener('mouseleave', () => {
+      if (!relationshipLabel.classList.contains('editing')) {
+        relationshipLabel.style.backgroundColor = 'transparent';
+        relationshipLabel.style.border = '1px solid transparent';
+      }
+    });
+    
+    // クリックイベントを追加
+    relationshipLabel.addEventListener('click', (e) => {
+      e.stopPropagation();
+      enableRelationshipEditing(relationshipLabel, composeBox);
+    });
     
     // ボタンとラベルをコンテナに追加
     buttonContainer.appendChild(adjustButton);
@@ -400,12 +423,15 @@ function handleAdjustButtonClick(composeBox) {
   
   // console.log('[Email Assistant] 調整ボタンクリック - 宛先:', recipientEmail);
   
-  // 関係性を取得
-  getRelationship(recipientEmail).then(relationship => {
-    
-    // 関係性に基づいてメールを調整
+  // カスタム関係性があるかチェック
+  const buttonContainer = composeBox.parentNode.querySelector('.email-adjust-button-container');
+  const relationshipLabel = buttonContainer?.querySelector('.relationship-label');
+  const customRelationship = relationshipLabel ? getCustomRelationship(relationshipLabel) : null;
+  
+  if (customRelationship) {
+    // カスタム関係性を使用
     chrome.runtime.sendMessage(
-      { action: "adjustEmail", emailContent: stripHtml(emailContent), relationship: relationship },
+      { action: "adjustEmail", emailContent: stripHtml(emailContent), relationship: customRelationship },
       response => {
         if (response.success) {
           showAdjustmentResult(composeBox, response.adjustedEmail);
@@ -414,7 +440,21 @@ function handleAdjustButtonClick(composeBox) {
         }
       }
     );
-  });
+  } else {
+    // 通常の関係性取得処理
+    getRelationship(recipientEmail).then(relationship => {
+      chrome.runtime.sendMessage(
+        { action: "adjustEmail", emailContent: stripHtml(emailContent), relationship: relationship },
+        response => {
+          if (response.success) {
+            showAdjustmentResult(composeBox, response.adjustedEmail);
+          } else {
+            showError(composeBox, response.error);
+          }
+        }
+      );
+    });
+  }
 }
 
 // 関係性を取得（Background scriptを通じて）
@@ -583,12 +623,15 @@ function handleTranslateButtonClick(composeBox) {
     }
   }
   
-  // 関係性を取得
-  getRelationship(recipientEmail).then(relationship => {
-    
-    // 関係性に基づいてメールを英訳
+  // カスタム関係性があるかチェック
+  const buttonContainer = composeBox.parentNode.querySelector('.email-adjust-button-container');
+  const relationshipLabel = buttonContainer?.querySelector('.relationship-label');
+  const customRelationship = relationshipLabel ? getCustomRelationship(relationshipLabel) : null;
+  
+  if (customRelationship) {
+    // カスタム関係性を使用
     chrome.runtime.sendMessage(
-      { action: "translateEmail", emailContent: stripHtml(emailContent), relationship: relationship },
+      { action: "translateEmail", emailContent: stripHtml(emailContent), relationship: customRelationship },
       response => {
         if (response.success) {
           showTranslationResult(composeBox, response.translatedEmail);
@@ -597,7 +640,21 @@ function handleTranslateButtonClick(composeBox) {
         }
       }
     );
-  });
+  } else {
+    // 通常の関係性取得処理
+    getRelationship(recipientEmail).then(relationship => {
+      chrome.runtime.sendMessage(
+        { action: "translateEmail", emailContent: stripHtml(emailContent), relationship: relationship },
+        response => {
+          if (response.success) {
+            showTranslationResult(composeBox, response.translatedEmail);
+          } else {
+            showError(composeBox, response.error);
+          }
+        }
+      );
+    });
+  }
 }
 
 // 英訳結果を表示
@@ -629,6 +686,94 @@ function showTranslationResult(composeBox, translatedEmail) {
   
   // パネルを挿入
   composeBox.parentNode.insertBefore(resultPanel, composeBox.nextSibling);
+}
+
+// 関係性ラベルの編集機能
+function enableRelationshipEditing(relationshipLabel, composeBox) {
+  // 既に編集中の場合は何もしない
+  if (relationshipLabel.classList.contains('editing')) {
+    return;
+  }
+  
+  // 現在のテキストを取得（「関係性: 」部分を除去）
+  const currentText = relationshipLabel.textContent.replace(/^関係性:\s*/, '').replace(/（デフォルト）$/, '');
+  
+  // 編集状態のスタイルを適用
+  relationshipLabel.classList.add('editing');
+  relationshipLabel.style.backgroundColor = '#fff';
+  relationshipLabel.style.border = '1px solid #1a73e8';
+  relationshipLabel.style.position = 'relative';
+  
+  // 入力フィールドを作成
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentText;
+  input.style.width = '200px';
+  input.style.padding = '4px 8px';
+  input.style.border = 'none';
+  input.style.outline = 'none';
+  input.style.fontSize = '14px';
+  input.style.color = '#5f6368';
+  input.style.backgroundColor = 'transparent';
+  input.placeholder = '関係性を入力してください';
+  
+  // 元のテキストを非表示にし、入力フィールドを表示
+  relationshipLabel.textContent = '';
+  relationshipLabel.appendChild(input);
+  
+  // 入力フィールドにフォーカス
+  input.focus();
+  input.select();
+  
+  // 編集完了時の処理
+  const finishEditing = async (save = false) => {
+    const newRelationship = input.value.trim();
+    
+    // 編集状態を解除
+    relationshipLabel.classList.remove('editing');
+    relationshipLabel.style.backgroundColor = 'transparent';
+    relationshipLabel.style.border = '1px solid transparent';
+    
+    if (save && newRelationship) {
+      // 一時的に新しい関係性を保存
+      relationshipLabel.setAttribute('data-custom-relationship', newRelationship);
+      relationshipLabel.textContent = `関係性: ${newRelationship}（カスタム）`;
+    } else {
+      // キャンセルされた場合は元の表示に戻す
+      await updateRelationshipLabel(composeBox, relationshipLabel);
+    }
+    
+    // 入力フィールドを削除
+    if (relationshipLabel.contains(input)) {
+      relationshipLabel.removeChild(input);
+    }
+  };
+  
+  // Enterキーで保存
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      finishEditing(true);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      finishEditing(false);
+    }
+  });
+  
+  // フォーカスが離れたら保存
+  input.addEventListener('blur', () => {
+    finishEditing(true);
+  });
+  
+  // クリック時のイベント伝播を停止
+  input.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+}
+
+// カスタム関係性を取得する関数
+function getCustomRelationship(relationshipLabel) {
+  return relationshipLabel.getAttribute('data-custom-relationship') || null;
 }
 
 // ページ読み込み完了時に拡張機能を初期化
