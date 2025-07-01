@@ -60,21 +60,49 @@ function initializeRelationshipSelects() {
 }
 
 // 関係性タイプ一覧を表示
-function displayRelationshipTypesList() {
+async function displayRelationshipTypesList() {
   const relationshipTypesList = document.getElementById('relationshipTypesList');
   if (!relationshipTypesList) return;
   
+  // カスタム関係性を含む全ての関係性を取得するためにリロード
+  await window.RelationshipManager.loadCustomRelationships();
   const relationships = window.RelationshipManager.getAllRelationships();
   
   relationshipTypesList.innerHTML = relationships.map(rel => `
-    <div class="relationship-type-item">
+    <div class="relationship-type-item ${rel.custom ? 'custom-relationship' : 'default-relationship'}">
       <div class="relationship-type-info">
-        <h4>${rel.label}</h4>
+        <h4>${rel.label} ${rel.custom ? '（カスタム）' : ''}</h4>
         <p class="description">${rel.description}</p>
         <p class="english-style"><strong>英語スタイル:</strong> ${rel.englishStyle}</p>
+        ${rel.custom ? `
+          <div class="relationship-actions">
+            <button class="delete-custom-btn" data-id="${rel.id}">削除</button>
+          </div>
+        ` : ''}
       </div>
     </div>
   `).join('');
+  
+  // カスタム関係性の削除ボタンにイベントリスナーを追加
+  const deleteButtons = relationshipTypesList.querySelectorAll('.delete-custom-btn');
+  deleteButtons.forEach(button => {
+    button.addEventListener('click', async (e) => {
+      const relationshipId = e.target.getAttribute('data-id');
+      if (confirm('このカスタム関係性を削除しますか？')) {
+        try {
+          window.RelationshipManager.removeCustomRelationship(relationshipId);
+          await displayRelationshipTypesList(); // 表示を更新
+          
+          // 関係性選択肢も更新
+          initializeRelationshipSelects();
+          
+          console.log(`カスタム関係性「${relationshipId}」を削除しました`);
+        } catch (error) {
+          alert('カスタム関係性の削除に失敗しました: ' + error.message);
+        }
+      }
+    });
+  });
 }
 
 // 関係性データを読み込む
@@ -158,6 +186,9 @@ function addRelationship() {
       relationshipTypeSelect.value = window.RelationshipManager.getDefaultRelationshipType();
       newCustomDescriptionInput.value = '';
       customDescriptionContainer.style.display = 'none';
+      
+      // 関係性タイプ一覧を更新（カスタム関係性が追加された可能性がある）
+      displayRelationshipTypesList();
     });
   });
 }

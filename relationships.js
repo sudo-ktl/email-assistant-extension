@@ -48,6 +48,44 @@ class RelationshipManager {
   constructor() {
     this.relationships = [...DEFAULT_RELATIONSHIPS];
     this.defaultRelationshipType = DEFAULT_RELATIONSHIP_TYPE;
+    this.loadCustomRelationships();
+  }
+
+  // カスタム関係性をChrome Storageから読み込み
+  async loadCustomRelationships() {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      try {
+        const data = await new Promise((resolve) => {
+          chrome.storage.sync.get('customRelationships', (result) => {
+            resolve(result);
+          });
+        });
+        
+        if (data.customRelationships) {
+          // 既存のカスタム関係性を削除してから追加
+          this.relationships = this.relationships.filter(rel => !rel.custom);
+          this.relationships.push(...data.customRelationships);
+        }
+      } catch (error) {
+        console.error('カスタム関係性の読み込みエラー:', error);
+      }
+    }
+  }
+
+  // カスタム関係性をChrome Storageに保存
+  async saveCustomRelationships() {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      try {
+        const customRelationships = this.relationships.filter(rel => rel.custom);
+        await new Promise((resolve) => {
+          chrome.storage.sync.set({ customRelationships }, () => {
+            resolve();
+          });
+        });
+      } catch (error) {
+        console.error('カスタム関係性の保存エラー:', error);
+      }
+    }
   }
 
   // 全ての関係性を取得
@@ -77,26 +115,35 @@ class RelationshipManager {
     return relationship ? relationship.englishStyle : 'professional business tone';
   }
 
-  // カスタム関係性を追加（将来的な機能拡張用）
-  addCustomRelationship(id, label, description, englishStyle) {
-    // 既存IDのチェック
-    if (this.getRelationshipById(id)) {
-      throw new Error(`Relationship with ID '${id}' already exists`);
+  // カスタム関係性を追加
+  addCustomRelationship(label, description, englishStyle = null) {
+    // IDを生成（ラベルをベースに）
+    const id = 'custom_' + label.replace(/[^a-zA-Z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, '').toLowerCase();
+    
+    // 既存ラベルのチェック（重複防止）
+    if (this.relationships.some(rel => rel.label === label)) {
+      return this.getRelationshipByLabel(label);
     }
 
     const newRelationship = {
       id,
       label,
-      description,
-      englishStyle,
+      description: description || `カスタム関係性：${label}`,
+      englishStyle: englishStyle || `professional tone appropriate for ${label}`,
       custom: true
     };
 
     this.relationships.push(newRelationship);
+    this.saveCustomRelationships();
     return newRelationship;
   }
 
-  // カスタム関係性を削除（将来的な機能拡張用）
+  // ラベルで関係性を取得
+  getRelationshipByLabel(label) {
+    return this.relationships.find(rel => rel.label === label);
+  }
+
+  // カスタム関係性を削除
   removeCustomRelationship(id) {
     const relationship = this.getRelationshipById(id);
     if (!relationship) {
@@ -108,7 +155,13 @@ class RelationshipManager {
     }
 
     this.relationships = this.relationships.filter(rel => rel.id !== id);
+    this.saveCustomRelationships();
     return true;
+  }
+
+  // カスタム関係性のみを取得
+  getCustomRelationships() {
+    return this.relationships.filter(rel => rel.custom);
   }
 
   // HTMLの選択肢要素を生成

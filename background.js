@@ -147,6 +147,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
   
+  if (request.action === "saveCustomRelationship") {
+    logDebug("カスタム関係性保存リクエストを受信しました: " + request.label);
+    try {
+      // relationshipManagerを使用してカスタム関係性を追加
+      const relationship = relationshipManager.addCustomRelationship(request.label);
+      logDebug("カスタム関係性を保存しました: " + JSON.stringify(relationship));
+      sendResponse({ success: true, relationship: relationship });
+    } catch (error) {
+      logDebug("カスタム関係性の保存に失敗しました: " + error.message);
+      sendResponse({ success: false, error: error.message });
+    }
+    return true;
+  }
+  
   // その他のメッセージに対するレスポンス
   logDebug("未知のメッセージアクション: " + request.action);
   return false;

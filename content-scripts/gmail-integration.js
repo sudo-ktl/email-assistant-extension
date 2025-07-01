@@ -1,6 +1,25 @@
 // Gmail UI統合のための変数
 let gmailIntegrationInitialized = false;
 
+// カスタム関係性をグローバルに保存する関数
+async function saveCustomRelationshipGlobally(relationshipLabel) {
+  try {
+    // バックグラウンドスクリプトに送信してカスタム関係性を保存
+    const response = await chrome.runtime.sendMessage({
+      action: "saveCustomRelationship",
+      label: relationshipLabel
+    });
+    
+    if (response && response.success) {
+      console.log(`[Email Assistant] カスタム関係性「${relationshipLabel}」を保存しました`);
+    } else {
+      console.error(`[Email Assistant] カスタム関係性の保存に失敗しました:`, response);
+    }
+  } catch (error) {
+    console.error(`[Email Assistant] カスタム関係性の保存エラー:`, error);
+  }
+}
+
 // 拡張機能の初期化
 function initializeExtension() {
   if (gmailIntegrationInitialized) return;
@@ -735,6 +754,9 @@ function enableRelationshipEditing(relationshipLabel, composeBox) {
     relationshipLabel.style.border = '1px solid transparent';
     
     if (save && newRelationship) {
+      // カスタム関係性をグローバルに保存
+      await saveCustomRelationshipGlobally(newRelationship);
+      
       // 一時的に新しい関係性を保存
       relationshipLabel.setAttribute('data-custom-relationship', newRelationship);
       relationshipLabel.textContent = `関係性: ${newRelationship}（カスタム）`;
