@@ -12,6 +12,9 @@ const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
 
 // ページ読み込み時の初期化
 document.addEventListener('DOMContentLoaded', () => {
+  // 関係性の選択肢を初期化
+  initializeRelationshipSelects();
+  
   // 保存されている関係性データを読み込む
   loadRelationships();
   
@@ -41,6 +44,39 @@ document.addEventListener('DOMContentLoaded', () => {
   saveApiKeyBtn.addEventListener('click', saveApiKey);
 });
 
+// 関係性の選択肢を初期化
+function initializeRelationshipSelects() {
+  // relationshipTypeの選択肢を生成（カスタムオプション付き）
+  const relationshipOptions = window.RelationshipManager.generateSelectOptions(window.RelationshipManager.getDefaultRelationshipType());
+  const customOption = '<option value="custom">カスタム...</option>';
+  relationshipTypeSelect.innerHTML = relationshipOptions + customOption;
+  
+  // defaultRelationshipの選択肢を生成
+  const defaultOptions = window.RelationshipManager.generateSelectOptions(window.RelationshipManager.getDefaultRelationshipType());
+  defaultRelationshipSelect.innerHTML = defaultOptions;
+  
+  // 関係性タイプ一覧を表示
+  displayRelationshipTypesList();
+}
+
+// 関係性タイプ一覧を表示
+function displayRelationshipTypesList() {
+  const relationshipTypesList = document.getElementById('relationshipTypesList');
+  if (!relationshipTypesList) return;
+  
+  const relationships = window.RelationshipManager.getAllRelationships();
+  
+  relationshipTypesList.innerHTML = relationships.map(rel => `
+    <div class="relationship-type-item">
+      <div class="relationship-type-info">
+        <h4>${rel.label}</h4>
+        <p class="description">${rel.description}</p>
+        <p class="english-style"><strong>英語スタイル:</strong> ${rel.englishStyle}</p>
+      </div>
+    </div>
+  `).join('');
+}
+
 // 関係性データを読み込む
 function loadRelationships() {
   chrome.storage.sync.get('relationships', (data) => {
@@ -59,7 +95,7 @@ function loadRelationships() {
       relationshipItem.innerHTML = `
         <div class="relationship-info">
           <span class="email">${relationship.email}</span>
-          <span class="type">${relationship.type === 'custom' ? relationship.customDescription : relationship.type}</span>
+          <span class="type">${relationship.type === 'custom' ? relationship.customDescription : window.RelationshipManager.getDisplayLabel(relationship.type)}</span>
         </div>
         <div class="relationship-actions">
           <button class="delete-btn" data-index="${index}">削除</button>
@@ -119,7 +155,7 @@ function addRelationship() {
       
       // 入力フィールドをクリア
       newEmailAddressInput.value = '';
-      relationshipTypeSelect.value = 'クライアント';
+      relationshipTypeSelect.value = window.RelationshipManager.getDefaultRelationshipType();
       newCustomDescriptionInput.value = '';
       customDescriptionContainer.style.display = 'none';
     });

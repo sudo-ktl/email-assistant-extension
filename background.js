@@ -1,3 +1,6 @@
+// relationships.jsをインポート
+importScripts('relationships.js');
+
 // 最新のGemini API URL
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
 let apiKey = null;
@@ -121,7 +124,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     logDebug("関係性取得リクエストを受信しました: " + request.email);
     chrome.storage.sync.get(['relationships', 'defaultRelationship'], (data) => {
       const relationships = data.relationships || [];
-      const defaultRelationship = data.defaultRelationship || 'クライアント';
+      const defaultRelationship = data.defaultRelationship || relationshipManager.getDefaultRelationshipType();
       
       logDebug("保存されている関係性: " + JSON.stringify(relationships));
       
@@ -132,7 +135,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // カスタム関係性の場合は説明文を、それ以外は関係性タイプを返す
         const relationshipText = relationship.type === 'custom' 
           ? relationship.customDescription 
-          : relationship.type;
+          : relationshipManager.getDisplayLabel(relationship.type);
         logDebug("関係性が見つかりました: " + relationshipText);
         sendResponse({ relationship: relationshipText });
       } else {
@@ -244,33 +247,24 @@ ${emailContent}
 }
 
 // 関係性に基づいた英訳プロンプトを作成
-function createTranslationPrompt(emailContent, relationship) {
-  let styleInstruction = "";
+// 関係性タイプIDから英語スタイルを取得
+function getEnglishStyleForRelationship(relationship) {
+  // 関係性ラベルからIDを推定
+  const allRelationships = relationshipManager.getAllRelationships();
+  const matchedRelationship = allRelationships.find(rel => 
+    relationshipManager.getDisplayLabel(rel.id) === relationship || rel.label === relationship
+  );
   
-  switch (relationship) {
-    case "上司":
-      styleInstruction = "very formal and respectful English suitable for addressing a superior";
-      break;
-    case "同僚":
-      styleInstruction = "professional but friendly English suitable for colleagues";
-      break;
-    case "部下":
-      styleInstruction = "professional English with a supportive tone suitable for subordinates";
-      break;
-    case "クライアント":
-      styleInstruction = "highly formal and polite English suitable for clients";
-      break;
-    case "ビジネスパートナー":
-      styleInstruction = "professional and collaborative English suitable for business partners";
-      break;
-    case "社外関係者（初対面）":
-      styleInstruction = "very formal and cautious English suitable for first contact with external parties";
-      break;
-    default:
-      // カスタム関係性の場合
-      styleInstruction = `professional English appropriate for the relationship: ${relationship}`;
-      break;
+  if (matchedRelationship) {
+    return relationshipManager.getEnglishStyle(matchedRelationship.id);
+  } else {
+    // カスタム関係性の場合
+    return `professional English appropriate for the relationship: ${relationship}`;
   }
+}
+
+function createTranslationPrompt(emailContent, relationship) {
+  const styleInstruction = getEnglishStyleForRelationship(relationship);
   
   return `
 以下の日本語メール本文を、「${relationship}」との関係性に適した英語に翻訳してください。

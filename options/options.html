@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Email Assistant 設定</title>
   <link rel="stylesheet" href="../styles/options.css">
+  <script src="../relationships.js"></script>
 </head>
 <body>
   <div class="container">
@@ -29,12 +30,7 @@
           <div class="input-group">
             <label for="relationshipType">関係性タイプ:</label>
             <select id="relationshipType">
-              <option value="上司">上司（フォーマルで敬語）</option>
-              <option value="同僚">同僚（標準的なビジネス文体）</option>
-              <option value="部下">部下（指導的でありながら丁寧）</option>
-              <option value="クライアント" selected>クライアント（非常にフォーマルで丁寧）</option>
-              <option value="ビジネスパートナー">ビジネスパートナー（協力的でプロフェッショナル）</option>
-              <option value="社外関係者（初対面）">社外関係者（初対面）（フォーマルで慎重）</option>
+              <!-- 選択肢はJavaScriptで動的に生成されます -->
               <option value="custom">カスタム...</option>
             </select>
           </div>
@@ -55,12 +51,7 @@
         <div class="input-group">
           <label for="defaultRelationship">デフォルトの関係性:</label>
           <select id="defaultRelationship">
-            <option value="上司">上司（フォーマルで敬語）</option>
-            <option value="同僚">同僚（標準的なビジネス文体）</option>
-            <option value="部下">部下（指導的でありながら丁寧）</option>
-            <option value="クライアント" selected>クライアント（非常にフォーマルで丁寧）</option>
-            <option value="ビジネスパートナー">ビジネスパートナー（協力的でプロフェッショナル）</option>
-            <option value="社外関係者（初対面）">社外関係者（初対面）（フォーマルで慎重）</option>
+            <!-- 選択肢はJavaScriptで動的に生成されます -->
           </select>
         </div>
         
@@ -82,7 +73,7 @@
         <p>※ メール調整機能はGemini APIを使用しており、APIキーが必要です。</p>
         <p>※ <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a>からAPIキーを取得できます。</p>
       </div>
-    </section>
+</section>
   </div>
   
   <script src="options.js"></script>
