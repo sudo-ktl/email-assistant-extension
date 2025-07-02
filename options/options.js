@@ -11,9 +11,9 @@ const geminiApiKeyInput = document.getElementById('geminiApiKey');
 const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
 
 // ページ読み込み時の初期化
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // 関係性の選択肢を初期化
-  initializeRelationshipSelects();
+  await initializeRelationshipSelects();
   
   // 保存されている関係性データを読み込む
   loadRelationships();
@@ -45,15 +45,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // 関係性の選択肢を初期化
-function initializeRelationshipSelects() {
+async function initializeRelationshipSelects() {
+  // カスタム関係性を含む全ての関係性のオプションを生成
+  const allOptions = await generateAllRelationshipOptions();
+  
   // relationshipTypeの選択肢を生成（カスタムオプション付き）
-  const relationshipOptions = window.RelationshipManager.generateSelectOptions(window.RelationshipManager.getDefaultRelationshipType());
   const customOption = '<option value="custom">カスタム...</option>';
-  relationshipTypeSelect.innerHTML = relationshipOptions + customOption;
+  relationshipTypeSelect.innerHTML = allOptions + customOption;
   
   // defaultRelationshipの選択肢を生成
-  const defaultOptions = window.RelationshipManager.generateSelectOptions(window.RelationshipManager.getDefaultRelationshipType());
-  defaultRelationshipSelect.innerHTML = defaultOptions;
+  defaultRelationshipSelect.innerHTML = allOptions;
   
   // 関係性タイプ一覧を表示
   displayRelationshipTypesList();
@@ -94,7 +95,7 @@ async function displayRelationshipTypesList() {
           await displayRelationshipTypesList(); // 表示を更新
           
           // 関係性選択肢も更新
-          initializeRelationshipSelects();
+          await initializeRelationshipSelects();
           
           console.log(`カスタム関係性「${relationshipId}」を削除しました`);
         } catch (error) {
@@ -142,7 +143,7 @@ function loadRelationships() {
 }
 
 // 新しい関係性を追加する
-function addRelationship() {
+async function addRelationship() {
   const email = newEmailAddressInput.value.trim();
   const type = relationshipTypeSelect.value;
   let customDescription = '';
@@ -152,12 +153,16 @@ function addRelationship() {
     return;
   }
   
+  // カスタム関係性の処理
   if (type === 'custom') {
     customDescription = newCustomDescriptionInput.value.trim();
     if (!customDescription) {
       alert('カスタム関係性の説明を入力してください。');
       return;
     }
+  } else if (type.startsWith('custom:')) {
+    // 既存のカスタム関係性を選択した場合
+    customDescription = type.substring(7); // "custom:"を除去
   }
   
   chrome.storage.sync.get('relationships', (data) => {
@@ -171,9 +176,10 @@ function addRelationship() {
     }
     
     // 新しい関係性を追加
+    const finalType = type.startsWith('custom:') ? 'custom' : type;
     relationships.push({
       email,
-      type,
+      type: finalType,
       customDescription
     });
     
@@ -189,6 +195,9 @@ function addRelationship() {
       
       // 関係性タイプ一覧を更新（カスタム関係性が追加された可能性がある）
       displayRelationshipTypesList();
+      
+      // プルダウンも更新
+      initializeRelationshipSelects();
     });
   });
 }
@@ -299,6 +308,37 @@ function saveApiKey() {
         console.error("バックグラウンドへの通知に失敗:", response);
         alert('APIキーをStorageに保存しましたが、バックグラウンドへの通知に失敗しました。拡張機能を再読み込みしてください。');
       }
+    });
+  });
+}
+
+// 全ての関係性（デフォルト＋カスタム）のオプションを生成
+async function generateAllRelationshipOptions() {
+  return new Promise((resolve) => {
+    // storageからカスタム関係性を取得
+    chrome.storage.sync.get('relationships', (data) => {
+      const relationships = data.relationships || [];
+      
+      // デフォルトの関係性オプションを取得
+      const defaultOptions = window.RelationshipManager.generateSelectOptions(window.RelationshipManager.getDefaultRelationshipType());
+      
+      // カスタム関係性からユニークなカスタム説明を抽出
+      const customRelationships = relationships
+        .filter(rel => rel.type === 'custom' && rel.customDescription)
+        .reduce((unique, rel) => {
+          // 重複を除く
+          if (!unique.find(u => u.customDescription === rel.customDescription)) {
+            unique.push(rel);
+          }
+          return unique;
+        }, []);
+      
+      // カスタム関係性のオプションを生成
+      const customOptions = customRelationships
+        .map(rel => `<option value="custom:${rel.customDescription}">${rel.customDescription}</option>`)
+        .join('');
+      
+      resolve(defaultOptions + customOptions);
     });
   });
 }
