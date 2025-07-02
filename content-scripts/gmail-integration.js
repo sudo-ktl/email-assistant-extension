@@ -64,21 +64,22 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     relationshipLabel.style.cursor = 'pointer';
     relationshipLabel.style.padding = '4px 8px';
     relationshipLabel.style.borderRadius = '4px';
-    relationshipLabel.style.border = '1px solid transparent';
+    relationshipLabel.style.border = '1px solid #dadce0';
+    relationshipLabel.style.zIndex = '1';
     relationshipLabel.textContent = '関係性を確認中...';
     
     // ホバー効果を追加
     relationshipLabel.addEventListener('mouseenter', () => {
       if (!relationshipLabel.classList.contains('editing')) {
         relationshipLabel.style.backgroundColor = '#f8f9fa';
-        relationshipLabel.style.border = '1px solid #dadce0';
+        relationshipLabel.style.border = '1px solid #1a73e8';
       }
     });
     
     relationshipLabel.addEventListener('mouseleave', () => {
       if (!relationshipLabel.classList.contains('editing')) {
         relationshipLabel.style.backgroundColor = 'transparent';
-        relationshipLabel.style.border = '1px solid transparent';
+        relationshipLabel.style.border = '1px solid #dadce0';
       }
     });
     
@@ -860,7 +861,7 @@ async function enableRelationshipEditing(relationshipLabel, composeBox) {
     // 編集状態を解除
     relationshipLabel.classList.remove('editing');
     relationshipLabel.style.backgroundColor = 'transparent';
-    relationshipLabel.style.border = '1px solid transparent';
+    relationshipLabel.style.border = '1px solid #dadce0';
     relationshipLabel.style.display = 'inline';
     relationshipLabel.style.minWidth = 'auto';
     
