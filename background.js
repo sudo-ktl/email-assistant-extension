@@ -147,6 +147,32 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
   
+  if (request.action === "getAllRelationshipOptions") {
+    logDebug("全関係性選択肢取得リクエストを受信しました");
+    chrome.storage.sync.get(['relationships'], (data) => {
+      const relationships = data.relationships || [];
+      
+      // 定型の関係性選択肢を取得
+      const defaultOptions = relationshipManager.getAllRelationships().map(rel => 
+        relationshipManager.getDisplayLabel(rel.id)
+      );
+      
+      // カスタム関係性を取得（重複を避けるため）
+      const customOptions = relationships
+        .filter(r => r.type === 'custom')
+        .map(r => r.customDescription)
+        .filter(desc => desc && desc.trim() !== '')
+        .filter((desc, index, array) => array.indexOf(desc) === index); // 重複除去
+      
+      // 定型選択肢とカスタム選択肢を結合
+      const allOptions = [...defaultOptions, ...customOptions];
+      
+      logDebug("全関係性選択肢: " + JSON.stringify(allOptions));
+      sendResponse({ options: allOptions });
+    });
+    return true;
+  }
+  
   
   // その他のメッセージに対するレスポンス
   logDebug("未知のメッセージアクション: " + request.action);

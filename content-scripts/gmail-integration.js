@@ -69,8 +69,10 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     
     // ホバー効果を追加
     relationshipLabel.addEventListener('mouseenter', () => {
-      relationshipLabel.style.backgroundColor = '#f8f9fa';
-      relationshipLabel.style.border = '1px solid #dadce0';
+      if (!relationshipLabel.classList.contains('editing')) {
+        relationshipLabel.style.backgroundColor = '#f8f9fa';
+        relationshipLabel.style.border = '1px solid #dadce0';
+      }
     });
     
     relationshipLabel.addEventListener('mouseleave', () => {
@@ -690,50 +692,177 @@ function showTranslationResult(composeBox, translatedEmail) {
 }
 
 // 関係性ラベルの編集機能
-function enableRelationshipEditing(relationshipLabel, composeBox) {
+async function enableRelationshipEditing(relationshipLabel, composeBox) {
   // 既に編集中の場合は何もしない
   if (relationshipLabel.classList.contains('editing')) {
     return;
   }
   
   // 現在のテキストを取得（「関係性: 」部分を除去）
-  const currentText = relationshipLabel.textContent.replace(/^関係性:\s*/, '').replace(/（デフォルト）$/, '');
+  const currentText = relationshipLabel.textContent.replace(/^関係性:\s*/, '').replace(/（デフォルト）$/, '').replace(/（カスタム）$/, '');
   
   // 編集状態のスタイルを適用
   relationshipLabel.classList.add('editing');
   relationshipLabel.style.backgroundColor = '#fff';
   relationshipLabel.style.border = '1px solid #1a73e8';
   relationshipLabel.style.position = 'relative';
+  relationshipLabel.style.display = 'inline-block';
+  relationshipLabel.style.minWidth = '250px';
   
-  // 入力フィールドを作成
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.value = currentText;
-  input.style.width = '200px';
-  input.style.padding = '4px 8px';
-  input.style.border = 'none';
-  input.style.outline = 'none';
-  input.style.fontSize = '14px';
-  input.style.color = '#5f6368';
-  input.style.backgroundColor = 'transparent';
-  input.placeholder = '関係性を入力してください';
+  // グローバル設定から全ての関係性選択肢を取得
+  const allOptions = await getAllRelationshipOptions();
   
-  // 元のテキストを非表示にし、入力フィールドを表示
+  // ドロップダウンとカスタム入力のコンテナを作成
+  const editContainer = document.createElement('div');
+  editContainer.style.display = 'flex';
+  editContainer.style.flexDirection = 'column';
+  editContainer.style.gap = '8px';
+  editContainer.style.padding = '8px';
+  editContainer.style.backgroundColor = '#fff';
+  editContainer.style.border = '1px solid #dadce0';
+  editContainer.style.borderRadius = '4px';
+  editContainer.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+  editContainer.style.position = 'absolute';
+  editContainer.style.top = '100%';
+  editContainer.style.left = '0';
+  editContainer.style.zIndex = '10000';
+  editContainer.style.minWidth = '250px';
+  
+  // 定型選択肢のドロップダウンを作成
+  const selectContainer = document.createElement('div');
+  selectContainer.style.display = 'flex';
+  selectContainer.style.flexDirection = 'column';
+  selectContainer.style.gap = '4px';
+  
+  const selectLabel = document.createElement('div');
+  selectLabel.textContent = '既存の関係性から選択:';
+  selectLabel.style.fontSize = '12px';
+  selectLabel.style.color = '#5f6368';
+  selectLabel.style.fontWeight = '500';
+  
+  const select = document.createElement('select');
+  select.style.width = '100%';
+  select.style.padding = '6px 8px';
+  select.style.border = '1px solid #dadce0';
+  select.style.borderRadius = '4px';
+  select.style.fontSize = '14px';
+  select.style.backgroundColor = '#fff';
+  
+  // 「選択してください」オプションを最初に追加
+  const emptyOption = document.createElement('option');
+  emptyOption.value = '';
+  emptyOption.textContent = '選択してください';
+  select.appendChild(emptyOption);
+  
+  // 全ての関係性選択肢を追加（定型 + カスタム）
+  allOptions.forEach(option => {
+    const optionElement = document.createElement('option');
+    optionElement.value = option;
+    optionElement.textContent = option;
+    if (option === currentText) {
+      optionElement.selected = true;
+    }
+    select.appendChild(optionElement);
+  });
+  
+  selectContainer.appendChild(selectLabel);
+  selectContainer.appendChild(select);
+  
+  // カスタム入力フィールドのコンテナを作成
+  const customContainer = document.createElement('div');
+  customContainer.style.display = 'flex';
+  customContainer.style.flexDirection = 'column';
+  customContainer.style.gap = '4px';
+  
+  const customLabel = document.createElement('div');
+  customLabel.textContent = 'カスタム入力:';
+  customLabel.style.fontSize = '12px';
+  customLabel.style.color = '#5f6368';
+  customLabel.style.fontWeight = '500';
+  
+  const customInput = document.createElement('input');
+  customInput.type = 'text';
+  customInput.style.width = '100%';
+  customInput.style.padding = '6px 8px';
+  customInput.style.border = '1px solid #dadce0';
+  customInput.style.borderRadius = '4px';
+  customInput.style.fontSize = '14px';
+  customInput.style.backgroundColor = '#fff';
+  customInput.placeholder = '独自の関係性を入力';
+  
+  // 既存の選択肢にない場合はカスタム入力に値を設定
+  if (!allOptions.includes(currentText) && currentText) {
+    customInput.value = currentText;
+  }
+  
+  customContainer.appendChild(customLabel);
+  customContainer.appendChild(customInput);
+  
+  // ボタンコンテナを作成
+  const buttonContainer = document.createElement('div');
+  buttonContainer.style.display = 'flex';
+  buttonContainer.style.gap = '8px';
+  buttonContainer.style.justifyContent = 'flex-end';
+  
+  const applyButton = document.createElement('button');
+  applyButton.textContent = '適用';
+  applyButton.style.padding = '6px 12px';
+  applyButton.style.backgroundColor = '#1a73e8';
+  applyButton.style.color = 'white';
+  applyButton.style.border = 'none';
+  applyButton.style.borderRadius = '4px';
+  applyButton.style.fontSize = '14px';
+  applyButton.style.cursor = 'pointer';
+  
+  const cancelButton = document.createElement('button');
+  cancelButton.textContent = 'キャンセル';
+  cancelButton.style.padding = '6px 12px';
+  cancelButton.style.backgroundColor = '#f8f9fa';
+  cancelButton.style.color = '#5f6368';
+  cancelButton.style.border = '1px solid #dadce0';
+  cancelButton.style.borderRadius = '4px';
+  cancelButton.style.fontSize = '14px';
+  cancelButton.style.cursor = 'pointer';
+  
+  buttonContainer.appendChild(cancelButton);
+  buttonContainer.appendChild(applyButton);
+  
+  // 全てのコンテンツをコンテナに追加
+  editContainer.appendChild(selectContainer);
+  editContainer.appendChild(customContainer);
+  editContainer.appendChild(buttonContainer);
+  
+  // 元のテキストを非表示にし、編集コンテナを表示
   relationshipLabel.textContent = '';
-  relationshipLabel.appendChild(input);
+  relationshipLabel.appendChild(editContainer);
   
-  // 入力フィールドにフォーカス
-  input.focus();
-  input.select();
+  // 最初にフォーカスを設定
+  if (allOptions.includes(currentText)) {
+    select.focus();
+  } else {
+    customInput.focus();
+    customInput.select();
+  }
   
   // 編集完了時の処理
   const finishEditing = async (save = false) => {
-    const newRelationship = input.value.trim();
+    let newRelationship = '';
+    
+    if (save) {
+      // カスタム入力が優先（空でない場合）
+      if (customInput.value.trim()) {
+        newRelationship = customInput.value.trim();
+      } else if (select.value) {
+        newRelationship = select.value;
+      }
+    }
     
     // 編集状態を解除
     relationshipLabel.classList.remove('editing');
     relationshipLabel.style.backgroundColor = 'transparent';
     relationshipLabel.style.border = '1px solid transparent';
+    relationshipLabel.style.display = 'inline';
+    relationshipLabel.style.minWidth = 'auto';
     
     if (save && newRelationship) {
       // 一時的に新しい関係性を保存（グローバル保存は行わない）
@@ -744,27 +873,41 @@ function enableRelationshipEditing(relationshipLabel, composeBox) {
       await updateRelationshipLabel(composeBox, relationshipLabel);
     }
     
-    // 入力フィールドを削除
-    if (relationshipLabel.contains(input)) {
-      relationshipLabel.removeChild(input);
+    // 編集コンテナを削除
+    if (relationshipLabel.contains(editContainer)) {
+      relationshipLabel.removeChild(editContainer);
     }
   };
+  
+  // ドロップダウンの変更時にカスタム入力をクリア
+  select.addEventListener('change', () => {
+    if (select.value) {
+      customInput.value = '';
+    }
+  });
+  
+  // カスタム入力時にドロップダウンをクリア
+  customInput.addEventListener('input', () => {
+    if (customInput.value.trim()) {
+      select.value = '';
+    }
+  });
   
   // IME入力状態を追跡
   let isComposing = false;
   
   // IME入力開始
-  input.addEventListener('compositionstart', () => {
+  customInput.addEventListener('compositionstart', () => {
     isComposing = true;
   });
   
   // IME入力終了
-  input.addEventListener('compositionend', () => {
+  customInput.addEventListener('compositionend', () => {
     isComposing = false;
   });
   
   // Enterキーで保存（IME入力中は無視）
-  input.addEventListener('keydown', (e) => {
+  const handleKeydown = (e) => {
     if (e.key === 'Enter') {
       // IME入力中（日本語変換中）の場合は何もしない
       if (isComposing) {
@@ -776,22 +919,59 @@ function enableRelationshipEditing(relationshipLabel, composeBox) {
       e.preventDefault();
       finishEditing(false);
     }
-  });
+  };
   
-  // フォーカスが離れたら保存
-  input.addEventListener('blur', () => {
+  select.addEventListener('keydown', handleKeydown);
+  customInput.addEventListener('keydown', handleKeydown);
+  
+  // ボタンクリック
+  applyButton.addEventListener('click', () => {
     finishEditing(true);
   });
   
+  cancelButton.addEventListener('click', () => {
+    finishEditing(false);
+  });
+  
   // クリック時のイベント伝播を停止
-  input.addEventListener('click', (e) => {
+  editContainer.addEventListener('click', (e) => {
     e.stopPropagation();
   });
+  
+  // 外部クリックで閉じる
+  const handleOutsideClick = (e) => {
+    if (!relationshipLabel.contains(e.target)) {
+      finishEditing(true);
+      document.removeEventListener('click', handleOutsideClick);
+    }
+  };
+  
+  // 少し遅らせてイベントリスナーを追加（現在のクリックイベントを回避）
+  setTimeout(() => {
+    document.addEventListener('click', handleOutsideClick);
+  }, 100);
 }
 
 // カスタム関係性を取得する関数
 function getCustomRelationship(relationshipLabel) {
   return relationshipLabel.getAttribute('data-custom-relationship') || null;
+}
+
+// 全ての関係性選択肢を取得（定型 + カスタム）
+async function getAllRelationshipOptions() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { action: "getAllRelationshipOptions" },
+      (response) => {
+        if (response && response.options) {
+          resolve(response.options);
+        } else {
+          // フォールバック：デフォルトの選択肢のみ
+          resolve(['上司', '同僚', '部下', 'クライアント', 'ビジネスパートナー', '社外関係者（初対面）']);
+        }
+      }
+    );
+  });
 }
 
 // ページ読み込み完了時に拡張機能を初期化
