@@ -27,7 +27,8 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     if (existingButton) return;
     
     // editableクラス要素（メール本文エリア）のレイアウト調整
-    composeBox.style.marginBottom = '60px'; // ボタンコンテナ分のスペースを確保
+    composeBox.style.marginBottom = '100px'; // ボタンコンテナ分のスペース + 3行分の余裕を確保
+    composeBox.style.paddingBottom = '20px'; // 内部パディングも追加
     
     // 本文入力欄の下に配置するコンテナを作成
     const buttonContainer = document.createElement('div');
@@ -35,16 +36,17 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     buttonContainer.style.cssText = `
       padding: 10px 0;
       border-top: 1px solid #e0e0e0;
-      margin-top: 10px;
+      margin-top: 15px;
       display: flex;
       align-items: center;
       position: absolute;
-      bottom: -50px;
+      bottom: -80px;
       left: 0;
       right: 0;
       z-index: 100;
       background-color: #fff;
       min-height: 40px;
+      box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
     `;
     
     // メール調整ボタンを作成
