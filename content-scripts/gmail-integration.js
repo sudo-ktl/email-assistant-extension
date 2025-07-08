@@ -26,24 +26,26 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     const existingButton = composeBox.parentNode.querySelector('.email-adjust-button-container');
     if (existingButton) return;
     
-    // メッセージ本文要素のz-indexを高く設定
-    const messageBodyContainer = composeBox.closest('[aria-label="メッセージ本文"]');
-    if (messageBodyContainer) {
-      messageBodyContainer.style.position = 'relative';
-      messageBodyContainer.style.zIndex = '10';
-    }
+    // editableクラス要素（メール本文エリア）のレイアウト調整
+    composeBox.style.marginBottom = '60px'; // ボタンコンテナ分のスペースを確保
     
     // 本文入力欄の下に配置するコンテナを作成
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'email-adjust-button-container';
-    buttonContainer.style.padding = '10px 0';
-    buttonContainer.style.borderTop = '1px solid #e0e0e0';
-    buttonContainer.style.marginTop = '10px';
-    buttonContainer.style.display = 'flex';
-    buttonContainer.style.alignItems = 'center';
-    buttonContainer.style.position = 'relative';
-    buttonContainer.style.zIndex = '0';
-    buttonContainer.style.backgroundColor = '#fff';
+    buttonContainer.style.cssText = `
+      padding: 10px 0;
+      border-top: 1px solid #e0e0e0;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      position: absolute;
+      bottom: -50px;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background-color: #fff;
+      min-height: 40px;
+    `;
     
     // メール調整ボタンを作成
     const adjustButton = document.createElement('div');
@@ -119,12 +121,19 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     adjustButton.addEventListener('click', () => handleAdjustButtonClick(composeBox));
     translateButton.addEventListener('click', () => handleTranslateButtonClick(composeBox));
     
-    // ボタンコンテナを適切な位置に挿入（メッセージ本文の外側）
-    const messageBodyElement = composeBox.closest('[aria-label="メッセージ本文"]');
-    if (messageBodyElement && messageBodyElement.parentNode) {
-      messageBodyElement.parentNode.insertBefore(buttonContainer, messageBodyElement.nextSibling);
+    // 親要素のpositionを設定してabsolute positioningを有効にする
+    const composeParent = composeBox.parentNode;
+    if (composeParent) {
+      composeParent.style.position = 'relative';
+      composeParent.appendChild(buttonContainer);
     } else {
-      composeBox.parentNode.insertBefore(buttonContainer, composeBox.nextSibling);
+      // フォールバック：従来の方法
+      const messageBodyElement = composeBox.closest('[aria-label="メッセージ本文"]');
+      if (messageBodyElement && messageBodyElement.parentNode) {
+        messageBodyElement.parentNode.insertBefore(buttonContainer, messageBodyElement.nextSibling);
+      } else {
+        composeBox.parentNode.insertBefore(buttonContainer, composeBox.nextSibling);
+      }
     }
   });
 }
