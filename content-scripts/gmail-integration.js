@@ -535,12 +535,31 @@ function showAdjustmentResult(composeBox, adjustedEmail) {
   // 結果パネルを作成
   const resultPanel = document.createElement('div');
   resultPanel.className = 'email-adjustment-result';
+  
+  // 結果パネルのスタイルを設定（editableクラス要素と重ならないように）
+  resultPanel.style.cssText = `
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 20px;
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    font-family: 'Google Sans', Roboto, Arial, sans-serif;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-height: 300px;
+    overflow-y: auto;
+  `;
+  
   resultPanel.innerHTML = `
-    <div class="adjustment-header">メール調整結果</div>
-    <div class="adjustment-content">${adjustedEmail}</div>
-    <div class="adjustment-actions">
-      <button class="apply-btn">適用</button>
-      <button class="cancel-btn">キャンセル</button>
+    <div class="adjustment-header" style="font-weight: 500; margin-bottom: 12px; color: #202124; font-size: 16px;">メール調整結果</div>
+    <div class="adjustment-content" style="padding: 12px; background-color: white; border: 1px solid #dadce0; border-radius: 4px; margin-bottom: 12px; white-space: pre-wrap; font-size: 14px; line-height: 1.5; max-height: 200px; overflow-y: auto;">${adjustedEmail}</div>
+    <div class="adjustment-actions" style="display: flex; justify-content: flex-end; gap: 8px;">
+      <button class="cancel-btn" style="padding: 8px 16px; border-radius: 4px; border: 1px solid #dadce0; cursor: pointer; font-family: 'Google Sans', Roboto, Arial, sans-serif; background-color: #f1f3f4; color: #5f6368;">キャンセル</button>
+      <button class="apply-btn" style="padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-family: 'Google Sans', Roboto, Arial, sans-serif; background-color: #1a73e8; color: white;">適用</button>
     </div>
   `;
   
@@ -554,8 +573,13 @@ function showAdjustmentResult(composeBox, adjustedEmail) {
     resultPanel.remove();
   });
   
-  // パネルを挿入
-  composeBox.parentNode.insertBefore(resultPanel, composeBox.nextSibling);
+  // パネルを適切な位置に挿入（親要素が相対位置になっているため）
+  const composeParent = composeBox.parentNode;
+  if (composeParent) {
+    composeParent.appendChild(resultPanel);
+  } else {
+    composeBox.parentNode.insertBefore(resultPanel, composeBox.nextSibling);
+  }
 }
 
 // エラー表示
@@ -697,12 +721,31 @@ function showTranslationResult(composeBox, translatedEmail) {
   // 結果パネルを作成
   const resultPanel = document.createElement('div');
   resultPanel.className = 'email-adjustment-result';
+  
+  // 結果パネルのスタイルを設定（editableクラス要素と重ならないように）
+  resultPanel.style.cssText = `
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 20px;
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    font-family: 'Google Sans', Roboto, Arial, sans-serif;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-height: 300px;
+    overflow-y: auto;
+  `;
+  
   resultPanel.innerHTML = `
-    <div class="adjustment-header">英訳結果</div>
-    <div class="adjustment-content">${translatedEmail}</div>
-    <div class="adjustment-actions">
-      <button class="apply-btn">適用</button>
-      <button class="cancel-btn">キャンセル</button>
+    <div class="adjustment-header" style="font-weight: 500; margin-bottom: 12px; color: #202124; font-size: 16px;">英訳結果</div>
+    <div class="adjustment-content" style="padding: 12px; background-color: white; border: 1px solid #dadce0; border-radius: 4px; margin-bottom: 12px; white-space: pre-wrap; font-size: 14px; line-height: 1.5; max-height: 200px; overflow-y: auto;">${translatedEmail}</div>
+    <div class="adjustment-actions" style="display: flex; justify-content: flex-end; gap: 8px;">
+      <button class="cancel-btn" style="padding: 8px 16px; border-radius: 4px; border: 1px solid #dadce0; cursor: pointer; font-family: 'Google Sans', Roboto, Arial, sans-serif; background-color: #f1f3f4; color: #5f6368;">キャンセル</button>
+      <button class="apply-btn" style="padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-family: 'Google Sans', Roboto, Arial, sans-serif; background-color: #1a73e8; color: white;">適用</button>
     </div>
   `;
   
@@ -716,8 +759,13 @@ function showTranslationResult(composeBox, translatedEmail) {
     resultPanel.remove();
   });
   
-  // パネルを挿入
-  composeBox.parentNode.insertBefore(resultPanel, composeBox.nextSibling);
+  // パネルを適切な位置に挿入（親要素が相対位置になっているため）
+  const composeParent = composeBox.parentNode;
+  if (composeParent) {
+    composeParent.appendChild(resultPanel);
+  } else {
+    composeBox.parentNode.insertBefore(resultPanel, composeBox.nextSibling);
+  }
 }
 
 // 関係性ラベルの編集機能
