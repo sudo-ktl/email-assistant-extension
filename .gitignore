@@ -12,7 +12,7 @@ Thumbs.db
 .vscode/
 *.sublime-project
 *.sublime-workspace
-CLAUDE.md
+*.md
 
 # Node.js dependencies
 node_modules/
