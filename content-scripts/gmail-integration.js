@@ -885,7 +885,7 @@ async function enableRelationshipEditing(relationshipLabel, composeBox) {
     if (save && newRelationship) {
       // 一時的に新しい関係性を保存（グローバル保存は行わない）
       relationshipLabel.setAttribute('data-custom-relationship', newRelationship);
-      relationshipLabel.textContent = `関係性: ${newRelationship}（カスタム）`;
+      relationshipLabel.textContent = `関係性: ${newRelationship}`;
     } else {
       // キャンセルされた場合は元の表示に戻す
       await updateRelationshipLabel(composeBox, relationshipLabel);
