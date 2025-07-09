@@ -1,6 +1,32 @@
 // Gmail UI統合のための変数
 let gmailIntegrationInitialized = false;
 
+// 拡張機能のコンテキストが有効かチェック
+function isExtensionContextValid() {
+  try {
+    return chrome.runtime && chrome.runtime.id;
+  } catch (error) {
+    return false;
+  }
+}
+
+// 拡張機能の再初期化
+function reinitializeExtension() {
+  gmailIntegrationInitialized = false;
+  console.log("Extension context invalidated, reinitializing...");
+  
+  // 既存のボタンを削除
+  const existingButtons = document.querySelectorAll('.email-adjust-button-container');
+  existingButtons.forEach(button => button.remove());
+  
+  // 再初期化を試行
+  setTimeout(() => {
+    if (isExtensionContextValid()) {
+      initializeExtension();
+    }
+  }, 1000);
+}
+
 
 // 拡張機能の初期化
 function initializeExtension() {
@@ -462,9 +488,19 @@ function handleAdjustButtonClick(composeBox) {
   
   if (customRelationship) {
     // カスタム関係性を使用
+    if (!isExtensionContextValid()) {
+      showError(composeBox, '拡張機能を再読み込みしてください');
+      reinitializeExtension();
+      return;
+    }
+    
     chrome.runtime.sendMessage(
       { action: "adjustEmail", emailContent: stripHtml(emailContent), relationship: customRelationship },
       response => {
+        if (chrome.runtime.lastError) {
+          showError(composeBox, '拡張機能を再読み込みしてください');
+          return;
+        }
         if (response.success) {
           showAdjustmentResult(composeBox, response.adjustedEmail);
         } else {
@@ -475,9 +511,19 @@ function handleAdjustButtonClick(composeBox) {
   } else {
     // 通常の関係性取得処理
     getRelationship(recipientEmail).then(relationship => {
+      if (!isExtensionContextValid()) {
+        showError(composeBox, '拡張機能を再読み込みしてください');
+        reinitializeExtension();
+        return;
+      }
+      
       chrome.runtime.sendMessage(
         { action: "adjustEmail", emailContent: stripHtml(emailContent), relationship: relationship },
         response => {
+          if (chrome.runtime.lastError) {
+            showError(composeBox, '拡張機能を再読み込みしてください');
+            return;
+          }
           if (response.success) {
             showAdjustmentResult(composeBox, response.adjustedEmail);
           } else {
