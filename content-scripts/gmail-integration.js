@@ -123,20 +123,20 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     // 返信画面と新規作成画面で異なるスタイルを適用
     let containerStyle;
     if (isReply) {
-      // 返信画面：右寄せ、メール本文と同じ高さ、縦並び
+      // 返信画面：右寄せ、メール本文と同じ高さ、ボタン横並び+ラベル下配置
       containerStyle = `
         padding: 8px;
         margin-top: 15px;
         display: flex;
         flex-direction: column;
         gap: 6px;
-        align-items: center;
+        align-items: stretch;
         position: absolute;
         top: 0;
         right: 0;
         width: auto;
-        min-width: 160px;
-        max-width: 200px;
+        min-width: 180px;
+        max-width: 220px;
         z-index: 100;
         background-color: #fff;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -164,16 +164,27 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     
     buttonContainer.style.cssText = containerStyle;
     
+    // 返信画面用のボタンコンテナ（ボタンを横並びにするため）
+    let buttonRowContainer;
+    if (isReply) {
+      buttonRowContainer = document.createElement('div');
+      buttonRowContainer.style.cssText = `
+        display: flex;
+        gap: 4px;
+        width: 100%;
+      `;
+    }
+    
     // メール調整ボタンを作成
     const adjustButton = document.createElement('div');
     adjustButton.className = 'email-adjust-button';
     const adjustButtonStyle = isReply ? 
-      'width: 100%; background-color: #4285f4; color: white; border-radius: 4px; padding: 6px 8px; font-size: 12px; text-align: center;' : 
+      'flex: 1; background-color: #4285f4; color: white; border-radius: 4px; padding: 6px 4px; font-size: 11px; text-align: center;' : 
       'margin-right: 8px; background-color: #4285f4; color: white; border-radius: 4px; padding: 8px 16px;';
     adjustButton.innerHTML = `
       <div class="T-I J-J5-Ji aoO T-I-atl" role="button" tabindex="0" 
            style="${adjustButtonStyle}">
-        <span class="Tn">メール調整</span>
+        <span class="Tn">調整</span>
       </div>
     `;
     
@@ -181,7 +192,7 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     const translateButton = document.createElement('div');
     translateButton.className = 'email-translate-button';
     const translateButtonStyle = isReply ? 
-      'width: 100%; background-color: #34a853; color: white; border-radius: 4px; padding: 6px 8px; font-size: 12px; text-align: center;' : 
+      'flex: 1; background-color: #34a853; color: white; border-radius: 4px; padding: 6px 4px; font-size: 11px; text-align: center;' : 
       'margin-right: 8px; background-color: #34a853; color: white; border-radius: 4px; padding: 8px 16px;';
     translateButton.innerHTML = `
       <div class="T-I J-J5-Ji aoO T-I-atl" role="button" tabindex="0" 
@@ -194,7 +205,7 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     const relationshipLabel = document.createElement('div');
     relationshipLabel.className = 'relationship-label';
     if (isReply) {
-      // 返信画面用のスタイル：縦並び用に幅を調整
+      // 返信画面用のスタイル：ボタン下に配置
       relationshipLabel.style.width = '100%';
       relationshipLabel.style.fontSize = '11px';
       relationshipLabel.style.color = '#5f6368';
@@ -229,7 +240,7 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     
     relationshipLabel.addEventListener('mouseleave', () => {
       if (!relationshipLabel.classList.contains('editing')) {
-        relationshipLabel.style.backgroundColor = 'transparent';
+        relationshipLabel.style.backgroundColor = isReply ? '#f8f9fa' : 'transparent';
         relationshipLabel.style.border = '1px solid #dadce0';
       }
     });
@@ -241,9 +252,18 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     });
     
     // ボタンとラベルをコンテナに追加
-    buttonContainer.appendChild(adjustButton);
-    buttonContainer.appendChild(translateButton);
-    buttonContainer.appendChild(relationshipLabel);
+    if (isReply) {
+      // 返信画面：ボタンを横並びコンテナに追加し、その下に関係性ラベル
+      buttonRowContainer.appendChild(adjustButton);
+      buttonRowContainer.appendChild(translateButton);
+      buttonContainer.appendChild(buttonRowContainer);
+      buttonContainer.appendChild(relationshipLabel);
+    } else {
+      // 新規作成画面：従来通り横並び
+      buttonContainer.appendChild(adjustButton);
+      buttonContainer.appendChild(translateButton);
+      buttonContainer.appendChild(relationshipLabel);
+    }
     
     // 宛先フィールドから関係性を取得してラベルを更新
     updateRelationshipLabel(composeBox, relationshipLabel);
