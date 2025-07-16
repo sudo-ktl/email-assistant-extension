@@ -955,6 +955,10 @@ async function enableRelationshipEditing(relationshipLabel, composeBox) {
   // 現在のテキストを取得（「関係性: 」部分を除去）
   const currentText = relationshipLabel.textContent.replace(/^関係性:\s*/, '').replace(/（デフォルト）$/, '').replace(/（カスタム）$/, '');
   
+  // 返信画面かどうかを判定
+  const composeTypeResult = detectGmailComposeType(composeBox);
+  const isReply = composeTypeResult.type === 'reply' || composeTypeResult.type === 'forward';
+  
   // 編集状態のスタイルを適用
   relationshipLabel.classList.add('editing');
   relationshipLabel.style.backgroundColor = '#fff';
@@ -962,6 +966,14 @@ async function enableRelationshipEditing(relationshipLabel, composeBox) {
   relationshipLabel.style.position = 'relative';
   relationshipLabel.style.display = 'inline-block';
   relationshipLabel.style.minWidth = '250px';
+  
+  // 返信画面の場合、コンテナのmargin-rightを調整
+  if (isReply) {
+    const buttonContainer = relationshipLabel.closest('.email-adjust-button-container');
+    if (buttonContainer) {
+      buttonContainer.style.marginRight = '100px';
+    }
+  }
   
   // グローバル設定から全ての関係性選択肢を取得
   const allOptions = await getAllRelationshipOptions();
@@ -1113,10 +1125,18 @@ async function enableRelationshipEditing(relationshipLabel, composeBox) {
     
     // 編集状態を解除
     relationshipLabel.classList.remove('editing');
-    relationshipLabel.style.backgroundColor = 'transparent';
+    relationshipLabel.style.backgroundColor = isReply ? '#f8f9fa' : 'transparent';
     relationshipLabel.style.border = '1px solid #dadce0';
     relationshipLabel.style.display = 'inline';
     relationshipLabel.style.minWidth = 'auto';
+    
+    // 返信画面の場合、コンテナのmargin-rightをリセット
+    if (isReply) {
+      const buttonContainer = relationshipLabel.closest('.email-adjust-button-container');
+      if (buttonContainer) {
+        buttonContainer.style.marginRight = '0px';
+      }
+    }
     
     if (save && newRelationship) {
       // 一時的に新しい関係性を保存（グローバル保存は行わない）
