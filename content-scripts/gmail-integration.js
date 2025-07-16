@@ -45,12 +45,72 @@ function initializeExtension() {
   console.log("Email Assistant Extension initialized");
 }
 
+// Gmail Compose Type検出機能
+function detectGmailComposeType(composeBox) {
+  let confidence = 0;
+  let type = 'new'; // デフォルト
+  
+  try {
+    // 1. URLハッシュによる判定（最も確実）
+    const urlHash = window.location.hash;
+    if (urlHash.includes('reply')) {
+      type = 'reply';
+      confidence += 40;
+    } else if (urlHash.includes('forward')) {
+      type = 'forward';
+      confidence += 40;
+    } else if (urlHash.includes('compose')) {
+      type = 'new';
+      confidence += 40;
+    }
+    
+    // 2. 件名フィールドのプレフィックスをチェック
+    const emailContainer = composeBox.closest('div[role="dialog"]') || composeBox.closest('form') || composeBox.closest('.M9');
+    const subjectField = emailContainer?.querySelector('input[name="subjectbox"]');
+    if (subjectField && subjectField.value) {
+      if (subjectField.value.startsWith('Re:')) {
+        type = 'reply';
+        confidence += 30;
+      } else if (subjectField.value.startsWith('Fwd:') || subjectField.value.startsWith('転送:')) {
+        type = 'forward';
+        confidence += 30;
+      }
+    }
+    
+    // 3. 引用テキストの存在をチェック
+    const hasQuotedText = composeBox.querySelector('blockquote, .gmail_quote, .gmail_extra') ||
+                         composeBox.innerHTML.includes('&gt;') ||
+                         composeBox.textContent.includes('wrote:') ||
+                         composeBox.textContent.includes('さんは書きました');
+    if (hasQuotedText) {
+      if (type === 'new') type = 'reply'; // URLから判定できなかった場合
+      confidence += 20;
+    }
+    
+    // 4. TOフィールドに既存の宛先があるかチェック（返信の場合）
+    const toField = emailContainer?.querySelector('input[aria-label*="To"], input[aria-label*="宛先"]');
+    if (toField && toField.value && type === 'new') {
+      type = 'reply';
+      confidence += 10;
+    }
+    
+  } catch (error) {
+    console.log('[Email Assistant] Compose type detection error:', error);
+  }
+  
+  return { type, confidence: Math.min(confidence, 100) };
+}
+
 // 作成ボックスに調整ボタンを追加
 function addAdjustButtonToComposeBoxes(composeBoxes) {
   composeBoxes.forEach(composeBox => {
     // ボタンが既に存在するかチェック
     const existingButton = composeBox.parentNode.querySelector('.email-adjust-button-container');
     if (existingButton) return;
+    
+    // Compose Typeを検出
+    const composeTypeResult = detectGmailComposeType(composeBox);
+    const isReply = composeTypeResult.type === 'reply' || composeTypeResult.type === 'forward';
     
     // editableクラス要素（メール本文エリア）のレイアウト調整
     composeBox.style.marginBottom = '100px'; // ボタンコンテナ分のスペース + 3行分の余裕を確保
@@ -59,28 +119,58 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     // 本文入力欄の下に配置するコンテナを作成
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'email-adjust-button-container';
-    buttonContainer.style.cssText = `
-      padding: 10px 0;
-      border-top: 1px solid #e0e0e0;
-      margin-top: 15px;
-      display: flex;
-      align-items: center;
-      position: absolute;
-      bottom: -80px;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      background-color: #fff;
-      min-height: 40px;
-      box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
-    `;
+    
+    // 返信画面と新規作成画面で異なるスタイルを適用
+    let containerStyle;
+    if (isReply) {
+      // 返信画面：右寄せ、メール本文と同じ高さ
+      containerStyle = `
+        padding: 10px 0;
+        border-top: 1px solid #e0e0e0;
+        margin-top: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: auto;
+        min-width: 300px;
+        z-index: 100;
+        background-color: #fff;
+        min-height: 40px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 4px;
+        border: 1px solid #dadce0;
+      `;
+    } else {
+      // 新規作成画面：従来のレイアウト
+      containerStyle = `
+        padding: 10px 0;
+        border-top: 1px solid #e0e0e0;
+        margin-top: 15px;
+        display: flex;
+        align-items: center;
+        position: absolute;
+        bottom: -80px;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background-color: #fff;
+        min-height: 40px;
+        box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+      `;
+    }
+    
+    buttonContainer.style.cssText = containerStyle;
     
     // メール調整ボタンを作成
     const adjustButton = document.createElement('div');
     adjustButton.className = 'email-adjust-button';
+    const adjustButtonStyle = isReply ? 'margin: 0 4px; background-color: #4285f4; color: white; border-radius: 4px; padding: 6px 12px; font-size: 13px;' : 'margin-right: 8px; background-color: #4285f4; color: white; border-radius: 4px; padding: 8px 16px;';
     adjustButton.innerHTML = `
       <div class="T-I J-J5-Ji aoO T-I-atl" role="button" tabindex="0" 
-           style="margin-right: 8px; background-color: #4285f4; color: white; border-radius: 4px; padding: 8px 16px;">
+           style="${adjustButtonStyle}">
         <span class="Tn">メール調整</span>
       </div>
     `;
@@ -88,9 +178,10 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     // 英訳ボタンを作成
     const translateButton = document.createElement('div');
     translateButton.className = 'email-translate-button';
+    const translateButtonStyle = isReply ? 'margin: 0 4px; background-color: #34a853; color: white; border-radius: 4px; padding: 6px 12px; font-size: 13px;' : 'margin-right: 8px; background-color: #34a853; color: white; border-radius: 4px; padding: 8px 16px;';
     translateButton.innerHTML = `
       <div class="T-I J-J5-Ji aoO T-I-atl" role="button" tabindex="0" 
-           style="margin-right: 8px; background-color: #34a853; color: white; border-radius: 4px; padding: 8px 16px;">
+           style="${translateButtonStyle}">
         <span class="Tn">英訳</span>
       </div>
     `;
@@ -98,14 +189,28 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     // 関係性ラベルを作成
     const relationshipLabel = document.createElement('div');
     relationshipLabel.className = 'relationship-label';
-    relationshipLabel.style.marginLeft = '8px';
-    relationshipLabel.style.fontSize = '14px';
-    relationshipLabel.style.color = '#5f6368';
-    relationshipLabel.style.cursor = 'pointer';
-    relationshipLabel.style.padding = '4px 8px';
-    relationshipLabel.style.borderRadius = '4px';
-    relationshipLabel.style.border = '1px solid #dadce0';
-    relationshipLabel.style.zIndex = '1';
+    if (isReply) {
+      // 返信画面用のスタイル
+      relationshipLabel.style.margin = '0 4px';
+      relationshipLabel.style.fontSize = '12px';
+      relationshipLabel.style.color = '#5f6368';
+      relationshipLabel.style.cursor = 'pointer';
+      relationshipLabel.style.padding = '3px 6px';
+      relationshipLabel.style.borderRadius = '4px';
+      relationshipLabel.style.border = '1px solid #dadce0';
+      relationshipLabel.style.zIndex = '1';
+      relationshipLabel.style.backgroundColor = '#f8f9fa';
+    } else {
+      // 新規作成画面用のスタイル（従来通り）
+      relationshipLabel.style.marginLeft = '8px';
+      relationshipLabel.style.fontSize = '14px';
+      relationshipLabel.style.color = '#5f6368';
+      relationshipLabel.style.cursor = 'pointer';
+      relationshipLabel.style.padding = '4px 8px';
+      relationshipLabel.style.borderRadius = '4px';
+      relationshipLabel.style.border = '1px solid #dadce0';
+      relationshipLabel.style.zIndex = '1';
+    }
     relationshipLabel.textContent = '関係性を確認中...';
     
     // ホバー効果を追加
