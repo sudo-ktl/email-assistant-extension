@@ -73,7 +73,6 @@ async function displayRelationshipTypesList() {
     <div class="relationship-type-item ${rel.custom ? 'custom-relationship' : 'default-relationship'}">
       <div class="relationship-type-info">
         <h4>${rel.label} ${rel.custom ? '（カスタム）' : ''}</h4>
-        <p class="description">${rel.description}</p>
         <p class="english-style"><strong>英語スタイル:</strong> ${rel.englishStyle}</p>
         ${rel.custom ? `
           <div class="relationship-actions">

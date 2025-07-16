@@ -5,37 +5,31 @@ const DEFAULT_RELATIONSHIPS = [
   {
     id: 'boss',
     label: '上司',
-    description: 'フォーマルで敬語',
     englishStyle: 'very formal and respectful tone, using honorific language'
   },
   {
     id: 'colleague',
     label: '同僚',
-    description: '標準的なビジネス文体',
     englishStyle: 'professional and collaborative tone'
   },
   {
     id: 'subordinate',
     label: '部下',
-    description: '指導的でありながら丁寧',
     englishStyle: 'supportive and encouraging tone while maintaining professionalism'
   },
   {
     id: 'client',
     label: 'クライアント',
-    description: '非常にフォーマルで丁寧',
     englishStyle: 'extremely formal and polite business tone'
   },
   {
     id: 'business_partner',
     label: 'ビジネスパートナー',
-    description: '協力的でプロフェッショナル',
     englishStyle: 'collaborative and professional partnership tone'
   },
   {
     id: 'external_first_contact',
     label: '社外関係者（初対面）',
-    description: 'フォーマルで慎重',
     englishStyle: 'formal and cautious tone for new business contacts'
   }
 ];
@@ -98,10 +92,10 @@ class RelationshipManager {
     return this.relationships.find(rel => rel.id === id);
   }
 
-  // 関係性の表示用ラベル（説明付き）を取得
+  // 関係性の表示用ラベルを取得
   getDisplayLabel(id) {
     const relationship = this.getRelationshipById(id);
-    return relationship ? `${relationship.label}（${relationship.description}）` : id;
+    return relationship ? relationship.label : id;
   }
 
   // デフォルトの関係性タイプを取得
@@ -116,7 +110,7 @@ class RelationshipManager {
   }
 
   // カスタム関係性を追加
-  addCustomRelationship(label, description, englishStyle = null) {
+  addCustomRelationship(label, englishStyle = null) {
     // IDを生成（ラベルをベースに）
     const id = 'custom_' + label.replace(/[^a-zA-Z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, '').toLowerCase();
     
@@ -128,7 +122,6 @@ class RelationshipManager {
     const newRelationship = {
       id,
       label,
-      description: description || `カスタム関係性：${label}`,
       englishStyle: englishStyle || `professional tone appropriate for ${label}`,
       custom: true
     };
