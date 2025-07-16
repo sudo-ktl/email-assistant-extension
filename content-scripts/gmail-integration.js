@@ -123,28 +123,28 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     // 返信画面と新規作成画面で異なるスタイルを適用
     let containerStyle;
     if (isReply) {
-      // 返信画面：右寄せ、メール本文と同じ高さ
+      // 返信画面：右寄せ、メール本文と同じ高さ、縦並び
       containerStyle = `
-        padding: 10px 0;
-        border-top: 1px solid #e0e0e0;
+        padding: 8px;
         margin-top: 15px;
         display: flex;
+        flex-direction: column;
+        gap: 6px;
         align-items: center;
-        justify-content: flex-end;
         position: absolute;
         top: 0;
         right: 0;
         width: auto;
-        min-width: 300px;
+        min-width: 160px;
+        max-width: 200px;
         z-index: 100;
         background-color: #fff;
-        min-height: 40px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         border-radius: 4px;
         border: 1px solid #dadce0;
       `;
     } else {
-      // 新規作成画面：従来のレイアウト
+      // 新規作成画面：従来のレイアウト（横並び）
       containerStyle = `
         padding: 10px 0;
         border-top: 1px solid #e0e0e0;
@@ -167,7 +167,9 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     // メール調整ボタンを作成
     const adjustButton = document.createElement('div');
     adjustButton.className = 'email-adjust-button';
-    const adjustButtonStyle = isReply ? 'margin: 0 4px; background-color: #4285f4; color: white; border-radius: 4px; padding: 6px 12px; font-size: 13px;' : 'margin-right: 8px; background-color: #4285f4; color: white; border-radius: 4px; padding: 8px 16px;';
+    const adjustButtonStyle = isReply ? 
+      'width: 100%; background-color: #4285f4; color: white; border-radius: 4px; padding: 6px 8px; font-size: 12px; text-align: center;' : 
+      'margin-right: 8px; background-color: #4285f4; color: white; border-radius: 4px; padding: 8px 16px;';
     adjustButton.innerHTML = `
       <div class="T-I J-J5-Ji aoO T-I-atl" role="button" tabindex="0" 
            style="${adjustButtonStyle}">
@@ -178,7 +180,9 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     // 英訳ボタンを作成
     const translateButton = document.createElement('div');
     translateButton.className = 'email-translate-button';
-    const translateButtonStyle = isReply ? 'margin: 0 4px; background-color: #34a853; color: white; border-radius: 4px; padding: 6px 12px; font-size: 13px;' : 'margin-right: 8px; background-color: #34a853; color: white; border-radius: 4px; padding: 8px 16px;';
+    const translateButtonStyle = isReply ? 
+      'width: 100%; background-color: #34a853; color: white; border-radius: 4px; padding: 6px 8px; font-size: 12px; text-align: center;' : 
+      'margin-right: 8px; background-color: #34a853; color: white; border-radius: 4px; padding: 8px 16px;';
     translateButton.innerHTML = `
       <div class="T-I J-J5-Ji aoO T-I-atl" role="button" tabindex="0" 
            style="${translateButtonStyle}">
@@ -190,16 +194,18 @@ function addAdjustButtonToComposeBoxes(composeBoxes) {
     const relationshipLabel = document.createElement('div');
     relationshipLabel.className = 'relationship-label';
     if (isReply) {
-      // 返信画面用のスタイル
-      relationshipLabel.style.margin = '0 4px';
-      relationshipLabel.style.fontSize = '12px';
+      // 返信画面用のスタイル：縦並び用に幅を調整
+      relationshipLabel.style.width = '100%';
+      relationshipLabel.style.fontSize = '11px';
       relationshipLabel.style.color = '#5f6368';
       relationshipLabel.style.cursor = 'pointer';
-      relationshipLabel.style.padding = '3px 6px';
+      relationshipLabel.style.padding = '4px 6px';
       relationshipLabel.style.borderRadius = '4px';
       relationshipLabel.style.border = '1px solid #dadce0';
       relationshipLabel.style.zIndex = '1';
       relationshipLabel.style.backgroundColor = '#f8f9fa';
+      relationshipLabel.style.textAlign = 'center';
+      relationshipLabel.style.boxSizing = 'border-box';
     } else {
       // 新規作成画面用のスタイル（従来通り）
       relationshipLabel.style.marginLeft = '8px';
