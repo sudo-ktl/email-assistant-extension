@@ -736,6 +736,7 @@ function showAdjustmentResult(composeBox, adjustedEmail) {
     <div class="adjustment-content" style="padding: 12px; background-color: white; border: 1px solid #dadce0; border-radius: 4px; margin-bottom: 12px; white-space: pre-wrap; font-size: 14px; line-height: 1.5; max-height: 200px; overflow-y: auto;">${adjustedEmail}</div>
     <div class="adjustment-actions" style="display: flex; justify-content: flex-end; gap: 8px;">
       <button class="cancel-btn" style="padding: 8px 16px; border-radius: 4px; border: 1px solid #dadce0; cursor: pointer; font-family: 'Google Sans', Roboto, Arial, sans-serif; background-color: #f1f3f4; color: #5f6368;">キャンセル</button>
+      <button class="copy-btn" style="padding: 8px 16px; border-radius: 4px; border: 1px solid #dadce0; cursor: pointer; font-family: 'Google Sans', Roboto, Arial, sans-serif; background-color: #f8f9fa; color: #1a73e8;">コピー</button>
       <button class="apply-btn" style="padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-family: 'Google Sans', Roboto, Arial, sans-serif; background-color: #1a73e8; color: white;">適用</button>
     </div>
   `;
@@ -748,6 +749,32 @@ function showAdjustmentResult(composeBox, adjustedEmail) {
   
   resultPanel.querySelector('.cancel-btn').addEventListener('click', () => {
     resultPanel.remove();
+  });
+  
+  resultPanel.querySelector('.copy-btn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(adjustedEmail);
+      // コピー成功のフィードバック
+      const copyBtn = resultPanel.querySelector('.copy-btn');
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = 'コピー完了!';
+      copyBtn.style.backgroundColor = '#e8f5e8';
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.style.backgroundColor = '#f8f9fa';
+      }, 1500);
+    } catch (err) {
+      console.error('コピーに失敗しました:', err);
+      // エラー時のフィードバック
+      const copyBtn = resultPanel.querySelector('.copy-btn');
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = 'コピー失敗';
+      copyBtn.style.backgroundColor = '#fce8e6';
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.style.backgroundColor = '#f8f9fa';
+      }, 1500);
+    }
   });
   
   // パネルを適切な位置に挿入（親要素が相対位置になっているため）
@@ -922,6 +949,7 @@ function showTranslationResult(composeBox, translatedEmail) {
     <div class="adjustment-content" style="padding: 12px; background-color: white; border: 1px solid #dadce0; border-radius: 4px; margin-bottom: 12px; white-space: pre-wrap; font-size: 14px; line-height: 1.5; max-height: 200px; overflow-y: auto;">${translatedEmail}</div>
     <div class="adjustment-actions" style="display: flex; justify-content: flex-end; gap: 8px;">
       <button class="cancel-btn" style="padding: 8px 16px; border-radius: 4px; border: 1px solid #dadce0; cursor: pointer; font-family: 'Google Sans', Roboto, Arial, sans-serif; background-color: #f1f3f4; color: #5f6368;">キャンセル</button>
+      <button class="copy-btn" style="padding: 8px 16px; border-radius: 4px; border: 1px solid #dadce0; cursor: pointer; font-family: 'Google Sans', Roboto, Arial, sans-serif; background-color: #f8f9fa; color: #1a73e8;">コピー</button>
       <button class="apply-btn" style="padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-family: 'Google Sans', Roboto, Arial, sans-serif; background-color: #1a73e8; color: white;">適用</button>
     </div>
   `;
@@ -934,6 +962,32 @@ function showTranslationResult(composeBox, translatedEmail) {
   
   resultPanel.querySelector('.cancel-btn').addEventListener('click', () => {
     resultPanel.remove();
+  });
+  
+  resultPanel.querySelector('.copy-btn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(translatedEmail);
+      // コピー成功のフィードバック
+      const copyBtn = resultPanel.querySelector('.copy-btn');
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = 'コピー完了!';
+      copyBtn.style.backgroundColor = '#e8f5e8';
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.style.backgroundColor = '#f8f9fa';
+      }, 1500);
+    } catch (err) {
+      console.error('コピーに失敗しました:', err);
+      // エラー時のフィードバック
+      const copyBtn = resultPanel.querySelector('.copy-btn');
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = 'コピー失敗';
+      copyBtn.style.backgroundColor = '#fce8e6';
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.style.backgroundColor = '#f8f9fa';
+      }, 1500);
+    }
   });
   
   // パネルを適切な位置に挿入（親要素が相対位置になっているため）
